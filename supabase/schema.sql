@@ -1,0 +1,108 @@
+-- Paychex Assistant Schema
+-- Run this in the Supabase SQL editor
+
+create table if not exists people (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  title text,
+  org_team text,
+  notes text,
+  rapport int check (rapport between 1 and 5),
+  last_interaction_date date,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists relationships (
+  id uuid primary key default gen_random_uuid(),
+  person_a_id uuid not null references people(id) on delete cascade,
+  person_b_id uuid not null references people(id) on delete cascade,
+  relationship_type text not null check (relationship_type in ('reports_to', 'peers_with', 'works_with')),
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  status text not null default 'active' check (status in ('active', 'paused', 'closed')),
+  owner_person_id uuid references people(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists meetings (
+  id uuid primary key default gen_random_uuid(),
+  title text,
+  date date not null,
+  attendee_ids uuid[],
+  raw_notes text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists decisions (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  context text,
+  outcome text,
+  alternatives_considered text,
+  meeting_id uuid references meetings(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists action_items (
+  id uuid primary key default gen_random_uuid(),
+  description text not null,
+  owner_type text not null check (owner_type in ('me', 'other')),
+  owner_person_id uuid references people(id) on delete set null,
+  due_date date,
+  status text not null default 'open' check (status in ('open', 'done', 'dropped')),
+  related_meeting_id uuid references meetings(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists wins_and_observations (
+  id uuid primary key default gen_random_uuid(),
+  content text not null,
+  date date not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists open_questions (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  context text,
+  status text not null default 'open' check (status in ('open', 'answered')),
+  answered_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists parsed_items (
+  id uuid primary key default gen_random_uuid(),
+  meeting_id uuid references meetings(id) on delete cascade,
+  item_type text not null check (item_type in ('decision', 'action_item', 'observation', 'open_question')),
+  content text not null,
+  linked_record_id uuid,
+  created_at timestamptz not null default now()
+);
+
+-- Enable Row Level Security on all tables
+alter table people enable row level security;
+alter table relationships enable row level security;
+alter table projects enable row level security;
+alter table meetings enable row level security;
+alter table decisions enable row level security;
+alter table action_items enable row level security;
+alter table wins_and_observations enable row level security;
+alter table open_questions enable row level security;
+alter table parsed_items enable row level security;
+
+-- RLS policies: only authenticated user can access their data
+create policy "authenticated only" on people for all to authenticated using (true) with check (true);
+create policy "authenticated only" on relationships for all to authenticated using (true) with check (true);
+create policy "authenticated only" on projects for all to authenticated using (true) with check (true);
+create policy "authenticated only" on meetings for all to authenticated using (true) with check (true);
+create policy "authenticated only" on decisions for all to authenticated using (true) with check (true);
+create policy "authenticated only" on action_items for all to authenticated using (true) with check (true);
+create policy "authenticated only" on wins_and_observations for all to authenticated using (true) with check (true);
+create policy "authenticated only" on open_questions for all to authenticated using (true) with check (true);
+create policy "authenticated only" on parsed_items for all to authenticated using (true) with check (true);
