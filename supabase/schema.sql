@@ -106,3 +106,13 @@ create policy "authenticated only" on action_items for all to authenticated usin
 create policy "authenticated only" on wins_and_observations for all to authenticated using (true) with check (true);
 create policy "authenticated only" on open_questions for all to authenticated using (true) with check (true);
 create policy "authenticated only" on parsed_items for all to authenticated using (true) with check (true);
+
+-- Migration 001: observation type + person linking on open questions
+
+alter table wins_and_observations
+  add column if not exists type text not null default 'observation'
+  check (type in ('win', 'observation', 'intelligence'));
+
+alter table open_questions
+  add column if not exists related_person_id uuid references people(id) on delete set null;
+

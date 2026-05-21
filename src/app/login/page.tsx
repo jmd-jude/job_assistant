@@ -31,7 +31,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-white mb-8">Paychex Assistant</h1>
+        <h1 className="text-2xl font-semibold text-white mb-8">Jude's Assistant</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <input

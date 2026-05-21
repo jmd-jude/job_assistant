@@ -36,7 +36,9 @@ export interface OpenQuestion {
   context: string | null
   status: 'open' | 'answered'
   answered_at: string | null
+  related_person_id: string | null
   created_at: string
+  people?: { name: string }
 }
 
 export interface Decision {
@@ -53,6 +55,7 @@ export interface WinObservation {
   id: string
   content: string
   date: string
+  type: 'win' | 'observation' | 'intelligence'
   created_at: string
 }
 
@@ -69,7 +72,7 @@ export interface ParseResult {
   people: { name: string; title?: string; org_team?: string }[]
   decisions: { title: string; context?: string; outcome?: string; alternatives_considered?: string }[]
   action_items: { description: string; owner_type: 'me' | 'other'; owner_name?: string; due_date?: string | null }[]
-  open_questions: { question: string; context?: string }[]
-  observations: { content: string }[]
+  open_questions: { question: string; context?: string; related_person_name?: string | null }[]
+  observations: { content: string; type?: 'win' | 'observation' | 'intelligence' }[]
   suggested_meeting_title: string
 }

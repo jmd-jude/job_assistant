@@ -9,11 +9,11 @@ const SYSTEM_PROMPT = `You are a personal work assistant helping a product strat
 
 The user will give you raw, unstructured notes from a meeting or interaction. Extract the following into a JSON object with these keys:
 
-- people: array of {name, title, org_team} — anyone mentioned
+- people: array of {name, title, org_team} — anyone mentioned by name
 - decisions: array of {title, context, outcome, alternatives_considered}
-- action_items: array of {description, owner_type ("me" or "other"), owner_name (if other), due_date (ISO format if mentioned, else null)}
-- open_questions: array of {question, context}
-- observations: array of {content} — anything notable that doesn't fit above
+- action_items: array of {description, owner_type ("me" or "other"), owner_name (if other), due_date (ISO 8601 date if an explicit date or day was stated, otherwise null — do not infer dates from vague terms like "soon" or "EOW")}
+- open_questions: array of {question, context, related_person_name (name of person the question is about, if applicable, else null)} — only include questions the user explicitly flagged as unresolved or uncertain. Do not infer questions from subtext, observations, or things the user didn't directly state as open.
+- observations: array of {content, type} — type is one of: "win" (a positive outcome or accomplishment), "intelligence" (political or organizational insight worth remembering), or "observation" (anything else notable)
 - suggested_meeting_title: string — infer a short title if none was provided
 
 Return only valid JSON. No preamble, no explanation, no markdown fences.`
@@ -128,9 +128,18 @@ export async function POST(request: NextRequest) {
 
   // Insert open questions
   for (const q of parsed.open_questions ?? []) {
+    const related_person_id = q.related_person_name
+      ? (personIdMap[q.related_person_name] ?? null)
+      : null
+
     const { data: question } = await supabase
       .from('open_questions')
-      .insert({ question: q.question, context: q.context ?? null, status: 'open' })
+      .insert({
+        question: q.question,
+        context: q.context ?? null,
+        status: 'open',
+        related_person_id,
+      })
       .select('id')
       .single()
 
@@ -146,7 +155,11 @@ export async function POST(request: NextRequest) {
 
   // Insert observations
   for (const o of parsed.observations ?? []) {
-    await supabase.from('wins_and_observations').insert({ content: o.content, date })
+    await supabase.from('wins_and_observations').insert({
+      content: o.content,
+      date,
+      type: o.type ?? 'observation',
+    })
     await supabase.from('parsed_items').insert({
       meeting_id: meeting.id,
       item_type: 'observation',
