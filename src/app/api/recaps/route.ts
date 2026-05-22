@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (recapError) {
-      console.error('[recaps] insert failed:', recapError)
+      console.error('[recaps] insert failed:', recapError.message, recapError.code, recapError.details)
       return NextResponse.json({ error: recapError.message }, { status: 500 })
     }
 
