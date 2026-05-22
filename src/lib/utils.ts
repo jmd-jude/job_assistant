@@ -1,3 +1,5 @@
+export const CLAUDE_MODEL = process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-6'
+
 export function formatDate(iso: string): string {
   const date = new Date(iso + 'T00:00:00')
   const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }

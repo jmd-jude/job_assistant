@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import type { ParseResult } from '@/lib/types'
+import { CLAUDE_MODEL } from '@/lib/utils'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: CLAUDE_MODEL,
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: raw_notes }],

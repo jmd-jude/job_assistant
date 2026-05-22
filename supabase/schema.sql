@@ -176,3 +176,26 @@ as $$
   limit match_count;
 $$;
 
+-- Migration 004: conversational ask
+
+create table if not exists conversations (
+  id uuid primary key default gen_random_uuid(),
+  mode text not null check (mode in ('ask', 'prep')),
+  created_at timestamptz not null default now(),
+  last_active_at timestamptz not null default now()
+);
+
+create table if not exists conversation_turns (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  role text not null check (role in ('user', 'assistant')),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table conversations enable row level security;
+alter table conversation_turns enable row level security;
+
+create policy "authenticated only" on conversations for all to authenticated using (true) with check (true);
+create policy "authenticated only" on conversation_turns for all to authenticated using (true) with check (true);
+

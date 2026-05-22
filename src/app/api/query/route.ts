@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
+import { CLAUDE_MODEL } from '@/lib/utils'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { question } = await request.json()
+  const { question, conversation_id, mode = 'ask' } = await request.json()
   if (!question?.trim()) return NextResponse.json({ error: 'No question provided' }, { status: 400 })
 
   // Embed the question and retrieve semantically similar records
@@ -67,18 +68,56 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Fetch prior turns if continuing a conversation
+  type Turn = { role: 'user' | 'assistant'; content: string }
+  let priorTurns: Turn[] = []
+  let activeConversationId = conversation_id
+
+  if (conversation_id) {
+    const { data: turns } = await supabase
+      .from('conversation_turns')
+      .select('role, content')
+      .eq('conversation_id', conversation_id)
+      .order('created_at', { ascending: true })
+    priorTurns = (turns ?? []) as Turn[]
+  } else {
+    const { data: convo } = await supabase
+      .from('conversations')
+      .insert({ mode })
+      .select('id')
+      .single()
+    activeConversationId = convo?.id ?? null
+  }
+
+  // Build messages: prior turns first, then current question with fresh context
+  const messages: Turn[] = [
+    ...priorTurns,
+    {
+      role: 'user',
+      content: `Relevant records from my knowledge base:\n\n${JSON.stringify(context, null, 2)}\n\nQuestion: ${question}`,
+    },
+  ]
+
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: CLAUDE_MODEL,
     max_tokens: 1024,
     system: `You are a personal work assistant for a product strategy manager. Answer questions about their work based on the retrieved records provided. Be direct and specific. Reference names, dates, and details from the data. If the answer isn't in the data, say so plainly. When referencing dates, write them as Month Day, Year (e.g. May 22, 2026) — never use ISO format.`,
-    messages: [
-      {
-        role: 'user',
-        content: `Relevant records from my knowledge base:\n\n${JSON.stringify(context, null, 2)}\n\nQuestion: ${question}`,
-      },
-    ],
+    messages,
   })
 
   const answer = message.content[0].type === 'text' ? message.content[0].text : ''
-  return NextResponse.json({ answer })
+
+  // Persist both turns and update last_active_at
+  if (activeConversationId) {
+    await supabase.from('conversation_turns').insert([
+      { conversation_id: activeConversationId, role: 'user', content: question },
+      { conversation_id: activeConversationId, role: 'assistant', content: answer },
+    ])
+    await supabase
+      .from('conversations')
+      .update({ last_active_at: new Date().toISOString() })
+      .eq('id', activeConversationId)
+  }
+
+  return NextResponse.json({ answer, conversation_id: activeConversationId })
 }
