@@ -4,6 +4,8 @@ import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import { CLAUDE_MODEL } from '@/lib/utils'
 
+export const maxDuration = 60
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -29,44 +31,43 @@ export async function POST(request: NextRequest) {
 
   if (matchError) console.error('[query] vector search failed:', matchError)
 
-  // Fetch full linked records for each match
-  const context: Record<string, unknown>[] = []
-  for (const match of matches ?? []) {
-    const base = {
-      type: match.item_type,
-      content: match.content,
-      similarity: Math.round(match.similarity * 100) / 100,
-    }
+  // Fetch full linked records for each match (parallel)
+  const context: Record<string, unknown>[] = await Promise.all(
+    (matches ?? []).map(async (match: { item_type: string; content: string; similarity: number; linked_record_id: string | null }) => {
+      const base = {
+        type: match.item_type,
+        content: match.content,
+        similarity: Math.round(match.similarity * 100) / 100,
+      }
 
-    if (match.linked_record_id) {
+      if (!match.linked_record_id) return base
+
       if (match.item_type === 'action_item') {
         const { data } = await supabase
           .from('action_items')
           .select('*, people(name), meetings(title, date)')
           .eq('id', match.linked_record_id)
           .single()
-        context.push({ ...base, record: data })
+        return { ...base, record: data }
       } else if (match.item_type === 'decision') {
         const { data } = await supabase
           .from('decisions')
           .select('*, meetings(title, date)')
           .eq('id', match.linked_record_id)
           .single()
-        context.push({ ...base, record: data })
+        return { ...base, record: data }
       } else if (match.item_type === 'open_question') {
         const { data } = await supabase
           .from('open_questions')
           .select('*, people(name)')
           .eq('id', match.linked_record_id)
           .single()
-        context.push({ ...base, record: data })
-      } else {
-        context.push(base)
+        return { ...base, record: data }
       }
-    } else {
-      context.push(base)
-    }
-  }
+
+      return base
+    })
+  )
 
   // Fetch prior turns if continuing a conversation
   type Turn = { role: 'user' | 'assistant'; content: string }

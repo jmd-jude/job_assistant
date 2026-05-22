@@ -59,45 +59,51 @@ export default function QueryPage() {
     setStatus('loading')
     setError(null)
 
-    if (mode === 'ask') {
-      const userQuestion = input.trim()
-      setTurns(prev => [...prev, { role: 'user', content: userQuestion }])
-      setInput('')
+    try {
+      if (mode === 'ask') {
+        const userQuestion = input.trim()
+        setTurns(prev => [...prev, { role: 'user', content: userQuestion }])
+        setInput('')
 
-      const res = await fetch('/api/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: userQuestion, conversation_id: conversationId, mode }),
-      })
+        const res = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: userQuestion, conversation_id: conversationId, mode }),
+        })
 
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Something went wrong')
-        setStatus('error')
-        setTurns(prev => prev.slice(0, -1))
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error || 'Something went wrong')
+          setStatus('error')
+          setTurns(prev => prev.slice(0, -1))
+        } else {
+          setTurns(prev => [...prev, { role: 'assistant', content: data.answer }])
+          setConversationId(data.conversation_id)
+          setStatus('done')
+        }
       } else {
-        setTurns(prev => [...prev, { role: 'assistant', content: data.answer }])
-        setConversationId(data.conversation_id)
-        setStatus('done')
-      }
-    } else {
-      setAnswer(null)
-      setSaveStatus('idle')
+        setAnswer(null)
+        setSaveStatus('idle')
 
-      const res = await fetch('/api/synthesize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, input }),
-      })
+        const res = await fetch('/api/synthesize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode, input }),
+        })
 
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || 'Something went wrong')
-        setStatus('error')
-      } else {
-        setAnswer(data.answer)
-        setStatus('done')
+        const data = await res.json()
+        if (!res.ok) {
+          setError(data.error || 'Something went wrong')
+          setStatus('error')
+        } else {
+          setAnswer(data.answer)
+          setStatus('done')
+        }
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Request failed')
+      setStatus('error')
+      if (mode === 'ask') setTurns(prev => prev.slice(0, -1))
     }
   }
 
