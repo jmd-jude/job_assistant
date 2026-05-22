@@ -1,4 +1,4 @@
-# Paychex Assistant
+# Workplace Assistant
 
 A mobile-first personal work assistant for a product strategy manager. Captures raw meeting notes, extracts structured data via Claude, and surfaces action items, decisions, open questions, and intelligence through a daily dashboard.
 
