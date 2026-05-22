@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Markdown from 'react-markdown'
 
 type Mode = 'ask' | 'weekly' | 'prep'
 type Status = 'idle' | 'loading' | 'done' | 'error'
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export default function QueryPage() {
   const [mode, setMode] = useState<Mode>('ask')
@@ -12,6 +14,7 @@ export default function QueryPage() {
   const [answer, setAnswer] = useState<string | null>(null)
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -19,6 +22,7 @@ export default function QueryPage() {
     setStatus('loading')
     setAnswer(null)
     setError(null)
+    setSaveStatus('idle')
 
     const endpoint = mode === 'ask' ? '/api/query' : '/api/synthesize'
     const body = mode === 'ask'
@@ -41,11 +45,28 @@ export default function QueryPage() {
     }
   }
 
+  async function handleSave() {
+    if (!answer) return
+    setSaveStatus('saving')
+    const weekEnding = new Date().toISOString().split('T')[0]
+    const res = await fetch('/api/recaps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: answer, week_ending: weekEnding }),
+    })
+    if (res.ok) {
+      setSaveStatus('saved')
+    } else {
+      setSaveStatus('error')
+    }
+  }
+
   function reset() {
     setStatus('idle')
     setAnswer(null)
     setInput('')
     setError(null)
+    setSaveStatus('idle')
   }
 
   const MODES: { id: Mode; label: string }[] = [
@@ -125,16 +146,43 @@ export default function QueryPage() {
           <div className="bg-lr-white rounded-xl lr-border-med px-4 py-4 text-sm text-lr-ink leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-strong:text-lr-ink prose-headings:text-lr-ink prose-a:text-lr-red">
             <Markdown>{answer}</Markdown>
           </div>
-          <button
-            onClick={reset}
-            className="mt-3 text-sm text-lr-stone hover:text-lr-ink"
-          >
-            Ask another
-          </button>
+
+          <div className="mt-3 flex items-center gap-4">
+            <button
+              onClick={reset}
+              className="text-sm text-lr-stone hover:text-lr-ink"
+            >
+              Ask another
+            </button>
+
+            {mode === 'weekly' && (
+              <>
+                {saveStatus === 'saved' ? (
+                  <span className="text-sm text-lr-stone">Saved</span>
+                ) : (
+                  <button
+                    onClick={handleSave}
+                    disabled={saveStatus === 'saving'}
+                    className="text-sm text-lr-red hover:opacity-70 disabled:opacity-40 transition-opacity"
+                  >
+                    {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? 'Save failed — retry?' : 'Save this recap'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {error && <p className="mt-4 text-sm text-lr-red">{error}</p>}
+
+      {mode === 'weekly' && status !== 'loading' && (
+        <div className="mt-8 pt-4 lr-border-t">
+          <Link href="/recaps" className="text-xs text-lr-stone hover:text-lr-ink transition-colors">
+            View saved recaps
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

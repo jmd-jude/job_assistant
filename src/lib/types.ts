@@ -63,9 +63,17 @@ export interface WinObservation {
 export interface ParsedItems {
   id: string
   meeting_id: string | null
-  item_type: 'decision' | 'action_item' | 'observation' | 'open_question'
+  item_type: 'decision' | 'action_item' | 'observation' | 'open_question' | 'recap'
   content: string
   linked_record_id: string | null
+  created_at: string
+}
+
+export interface Recap {
+  id: string
+  generated_at: string
+  week_ending: string
+  content: string
   created_at: string
 }
 

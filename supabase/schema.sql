@@ -128,6 +128,27 @@ create index if not exists parsed_items_embedding_idx
   using ivfflat (embedding vector_cosine_ops)
   with (lists = 100);
 
+-- Migration 003: recaps table + parsed_items recap type
+
+create table if not exists recaps (
+  id uuid primary key default gen_random_uuid(),
+  generated_at timestamptz not null default now(),
+  week_ending date not null,
+  content text not null,
+  embedding vector(1536),
+  created_at timestamptz not null default now()
+);
+
+alter table recaps enable row level security;
+create policy "authenticated only" on recaps for all to authenticated using (true) with check (true);
+
+alter table parsed_items
+  drop constraint if exists parsed_items_item_type_check;
+
+alter table parsed_items
+  add constraint parsed_items_item_type_check
+  check (item_type in ('decision', 'action_item', 'observation', 'open_question', 'recap'));
+
 create or replace function match_parsed_items(
   query_embedding vector(1536),
   match_count int default 15
