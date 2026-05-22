@@ -56,10 +56,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           <h2 className="label-caps text-lr-stone mb-2">Recent meetings</h2>
           <div className="space-y-2">
             {meetings.map(m => (
-              <div key={m.id} className="bg-lr-white rounded-lg lr-border-med px-4 py-3">
+              <Link key={m.id} href={`/meetings/${m.id}`} className="block bg-lr-white rounded-lg lr-border-med px-4 py-3 hover:border-lr-red/40 transition-colors">
                 <p className="text-sm text-lr-ink">{m.title || 'Untitled'}</p>
                 <p className="text-xs text-lr-stone mt-0.5">{formatDate(m.date)}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
