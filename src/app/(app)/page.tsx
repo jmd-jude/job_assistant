@@ -9,6 +9,7 @@ export default async function DashboardPage() {
   const supabase = await createClient()
 
   const today = new Date()
+  const todayISO = today.toISOString().split('T')[0]
   const sevenDaysAgo = new Date(today)
   sevenDaysAgo.setDate(today.getDate() - 7)
   const cutoff = sevenDaysAgo.toISOString().split('T')[0]
@@ -74,6 +75,9 @@ export default async function DashboardPage() {
     }
   }
 
+  const myOverdue = myItems?.filter(i => i.due_date && i.due_date < todayISO).length ?? 0
+  const othersOverdue = othersItems?.filter(i => i.due_date && i.due_date < todayISO).length ?? 0
+
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -83,7 +87,7 @@ export default async function DashboardPage() {
         </span>
       </div>
 
-      <Section title="My open items" count={myItems?.length}>
+      <Section title="My open items" count={myItems?.length} overdueCount={myOverdue}>
         {myItems?.length ? (
           myItems.map(item => (
             <EditableActionItem key={item.id} item={item} />
@@ -93,7 +97,7 @@ export default async function DashboardPage() {
         )}
       </Section>
 
-      <Section title="Waiting on others" count={othersItems?.length}>
+      <Section title="Waiting on others" count={othersItems?.length} overdueCount={othersOverdue}>
         {othersItems?.length ? (
           othersItems.map(item => (
             <EditableActionItem key={item.id} item={item} showOwner />
@@ -146,11 +150,13 @@ export default async function DashboardPage() {
 function Section({
   title,
   count,
+  overdueCount,
   archiveHref,
   children,
 }: {
   title: string
   count?: number
+  overdueCount?: number
   archiveHref?: string
   children: React.ReactNode
 }) {
@@ -160,6 +166,9 @@ function Section({
         <h2 className="label-caps text-lr-stone">{title}</h2>
         {!!count && (
           <span className="text-xs bg-lr-parchment text-lr-stone rounded-full px-2 py-0.5">{count}</span>
+        )}
+        {!!overdueCount && (
+          <span className="text-xs bg-lr-red/15 text-lr-red rounded-full px-2 py-0.5">{overdueCount} overdue</span>
         )}
         {archiveHref && (
           <Link href={archiveHref} className="ml-auto text-xs text-lr-stone hover:text-lr-red transition-colors">
