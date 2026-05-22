@@ -22,13 +22,13 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('action_items')
-      .select('*, people(name)')
+      .select('*, people(name), meetings(id, title, date)')
       .eq('status', 'open')
       .eq('owner_type', 'me')
       .order('due_date', { ascending: true, nullsFirst: false }),
     supabase
       .from('action_items')
-      .select('*, people(name)')
+      .select('*, people(name), meetings(id, title, date)')
       .eq('status', 'open')
       .eq('owner_type', 'other')
       .order('due_date', { ascending: true, nullsFirst: false }),
@@ -56,6 +56,22 @@ export default async function DashboardPage() {
       .gte('date', cutoff)
       .order('date', { ascending: false }),
   ])
+
+  // Look up source meetings for open questions via parsed_items
+  const questionIds = questions?.map(q => q.id) ?? []
+  const questionMeetingMap: Record<string, { id: string; title: string | null; date: string }> = {}
+  if (questionIds.length > 0) {
+    const { data: parsedLinks } = await supabase
+      .from('parsed_items')
+      .select('linked_record_id, meetings(id, title, date)')
+      .in('linked_record_id', questionIds)
+      .eq('item_type', 'open_question')
+    for (const link of parsedLinks ?? []) {
+      if (link.linked_record_id && link.meetings) {
+        questionMeetingMap[link.linked_record_id] = link.meetings as unknown as { id: string; title: string | null; date: string }
+      }
+    }
+  }
 
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
@@ -89,7 +105,7 @@ export default async function DashboardPage() {
       <Section title="Open questions" count={questions?.length}>
         {questions?.length ? (
           questions.map(q => (
-            <QuestionRow key={q.id} question={q} markAnswered={markQuestionAnswered} deleteQ={deleteQuestion} />
+            <QuestionRow key={q.id} question={q} meeting={questionMeetingMap[q.id] ?? null} markAnswered={markQuestionAnswered} deleteQ={deleteQuestion} />
           ))
         ) : (
           <Empty>No open questions.</Empty>
@@ -157,10 +173,12 @@ function Section({
 
 function QuestionRow({
   question,
+  meeting,
   markAnswered,
   deleteQ,
 }: {
   question: OpenQuestion
+  meeting: { id: string; title: string | null; date: string } | null
   markAnswered: (id: string) => Promise<void>
   deleteQ: (id: string) => Promise<void>
 }) {
@@ -175,7 +193,11 @@ function QuestionRow({
           {question.context && (
             <span className="text-xs text-gray-500 line-clamp-1">{question.context}</span>
           )}
-          <span className="text-xs text-gray-600">{formatDate(question.created_at.split('T')[0])}</span>
+          {meeting && (
+            <Link href={`/meetings/${meeting.id}`} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+              {meeting.title ?? 'Untitled'} · {formatDate(meeting.date)}
+            </Link>
+          )}
         </div>
       </div>
       <div className="flex gap-1 shrink-0">

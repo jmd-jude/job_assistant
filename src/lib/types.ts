@@ -28,6 +28,7 @@ export interface ActionItem {
   related_meeting_id: string | null
   created_at: string
   people?: Person
+  meetings?: { id: string; title: string | null; date: string } | null
 }
 
 export interface OpenQuestion {

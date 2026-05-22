@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { markActionItemDone, updateActionItem } from '@/lib/actions'
 import type { ActionItem, Person } from '@/lib/types'
 
@@ -76,6 +77,14 @@ export function EditableActionItem({ item, showOwner }: Props) {
             <span className={`text-xs ${overdue ? 'text-red-400' : 'text-gray-500'}`}>
               {formatDate(item.due_date)}
             </span>
+          )}
+          {item.meetings && (
+            <Link
+              href={`/meetings/${item.meetings.id}`}
+              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              {item.meetings.title ?? 'Untitled'} · {formatDate(item.meetings.date)}
+            </Link>
           )}
         </div>
       </div>
