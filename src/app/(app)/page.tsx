@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { markQuestionAnswered, deleteQuestion } from '@/lib/actions'
 import { EditableActionItem } from '@/components/EditableActionItem'
+import { formatDate } from '@/lib/utils'
 import type { OpenQuestion, WinObservation } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -236,6 +237,3 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-lr-stone py-1">{children}</p>
 }
 
-function formatDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { formatDateWithWeekday } from '@/lib/utils'
 
 type FilterType = 'all' | 'win' | 'intelligence' | 'observation'
 
@@ -84,7 +85,7 @@ export default async function IntelPage({
                 </span>
                 <p className="text-sm text-lr-ink flex-1">{item.content}</p>
               </div>
-              <p className="text-xs text-lr-stone mt-1.5 ml-9">{formatDate(item.date)}</p>
+              <p className="text-xs text-lr-stone mt-1.5 ml-9">{formatDateWithWeekday(item.date)}</p>
             </div>
           ))}
         </div>
@@ -95,8 +96,3 @@ export default async function IntelPage({
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-  })
-}

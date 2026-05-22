@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { formatDateWithWeekday } from '@/lib/utils'
 
 export default async function MeetingsPage() {
   const supabase = await createClient()
@@ -25,7 +26,7 @@ export default async function MeetingsPage() {
             >
               <div>
                 <p className="text-sm font-medium text-lr-ink">{m.title || 'Untitled'}</p>
-                <p className="text-xs text-lr-stone mt-0.5">{formatDate(m.date)}</p>
+                <p className="text-xs text-lr-stone mt-0.5">{formatDateWithWeekday(m.date)}</p>
               </div>
               <svg className="w-4 h-4 text-lr-stone shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -40,8 +41,3 @@ export default async function MeetingsPage() {
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-  })
-}

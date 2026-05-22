@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { markActionItemDone, updateActionItem } from '@/lib/actions'
+import { formatDate } from '@/lib/utils'
 import type { ActionItem, Person } from '@/lib/types'
 
 type Props = {
@@ -75,7 +76,7 @@ export function EditableActionItem({ item, showOwner }: Props) {
           )}
           {item.due_date && (
             <span className={`text-xs ${overdue ? 'text-lr-red' : 'text-lr-stone'}`}>
-              {formatDate(item.due_date)}
+              Due: {formatDate(item.due_date)}
             </span>
           )}
           {item.meetings && (
@@ -114,6 +115,3 @@ export function EditableActionItem({ item, showOwner }: Props) {
   )
 }
 
-function formatDate(iso: string) {
-  return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
