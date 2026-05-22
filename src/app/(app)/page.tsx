@@ -76,8 +76,8 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Morning Review</h1>
-        <span className="text-sm text-gray-500">
+        <h1 className="text-xl font-serif font-semibold">Morning Review</h1>
+        <span className="text-sm text-lr-stone">
           {today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
         </span>
       </div>
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
       <div className="mt-8 mb-6">
         <Link
           href="/capture"
-          className="block w-full py-3 text-center rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors"
+          className="block w-full py-3 text-center rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 transition-opacity"
         >
           + Capture something
         </Link>
@@ -156,12 +156,12 @@ function Section({
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wide">{title}</h2>
+        <h2 className="label-caps text-lr-stone">{title}</h2>
         {!!count && (
-          <span className="text-xs bg-gray-800 text-gray-400 rounded-full px-2 py-0.5">{count}</span>
+          <span className="text-xs bg-lr-parchment text-lr-stone rounded-full px-2 py-0.5">{count}</span>
         )}
         {archiveHref && (
-          <Link href={archiveHref} className="ml-auto text-xs text-gray-600 hover:text-gray-400 transition-colors">
+          <Link href={archiveHref} className="ml-auto text-xs text-lr-stone hover:text-lr-red transition-colors">
             View all
           </Link>
         )}
@@ -183,18 +183,18 @@ function QuestionRow({
   deleteQ: (id: string) => Promise<void>
 }) {
   return (
-    <div className="bg-gray-900 rounded-lg px-4 py-3 flex items-start justify-between gap-3">
+    <div className="bg-lr-white rounded-lg lr-border-med px-4 py-3 flex items-start justify-between gap-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-100">{question.question}</p>
+        <p className="text-sm text-lr-ink">{question.question}</p>
         <div className="flex gap-2 mt-1 flex-wrap">
           {question.people?.name && (
-            <span className="text-xs text-blue-400">{question.people.name}</span>
+            <span className="text-xs text-lr-red">{question.people.name}</span>
           )}
           {question.context && (
-            <span className="text-xs text-gray-500 line-clamp-1">{question.context}</span>
+            <span className="text-xs text-lr-stone line-clamp-1">{question.context}</span>
           )}
           {meeting && (
-            <Link href={`/meetings/${meeting.id}`} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+            <Link href={`/meetings/${meeting.id}`} className="text-xs text-lr-stone hover:text-lr-red transition-colors">
               {meeting.title ?? 'Untitled'} · {formatDate(meeting.date)}
             </Link>
           )}
@@ -204,7 +204,7 @@ function QuestionRow({
         <form>
           <button
             formAction={async () => { 'use server'; await markAnswered(question.id) }}
-            className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-blue-900 hover:text-blue-400 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
           >
             Answered
           </button>
@@ -212,7 +212,7 @@ function QuestionRow({
         <form>
           <button
             formAction={async () => { 'use server'; await deleteQ(question.id) }}
-            className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-red-900 hover:text-red-400 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-red hover:text-lr-white transition-colors"
             title="Remove question"
           >
             ×
@@ -225,15 +225,15 @@ function QuestionRow({
 
 function ObsRow({ item }: { item: WinObservation }) {
   return (
-    <div className="bg-gray-900 rounded-lg px-4 py-3">
-      <p className="text-sm text-gray-100">{item.content}</p>
-      <p className="text-xs text-gray-600 mt-1">{formatDate(item.date)}</p>
+    <div className="bg-lr-white rounded-lg lr-border-med px-4 py-3">
+      <p className="text-sm text-lr-ink">{item.content}</p>
+      <p className="text-xs text-lr-stone mt-1">{formatDate(item.date)}</p>
     </div>
   )
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-gray-600 py-1">{children}</p>
+  return <p className="text-sm text-lr-stone py-1">{children}</p>
 }
 
 function formatDate(iso: string) {

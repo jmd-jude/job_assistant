@@ -15,7 +15,17 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full">
-      <body className="min-h-full bg-gray-950 text-gray-100">{children}</body>
+      <head>
+        {/* Runs synchronously before paint to avoid flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            if (localStorage.getItem('theme') === 'dark') {
+              document.documentElement.setAttribute('data-theme', 'dark');
+            }
+          } catch(e) {}
+        `}} />
+      </head>
+      <body className="min-h-full">{children}</body>
     </html>
   )
 }

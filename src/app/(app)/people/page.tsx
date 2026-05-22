@@ -11,7 +11,7 @@ export default async function PeoplePage() {
 
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-6">People</h1>
+      <h1 className="text-xl font-serif font-semibold mb-6">People</h1>
       {people?.length ? (
         <div className="space-y-2">
           {people.map(person => (
@@ -19,7 +19,7 @@ export default async function PeoplePage() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-600">No people yet. They appear automatically when you capture notes.</p>
+        <p className="text-sm text-lr-stone">No people yet. They appear automatically when you capture notes.</p>
       )}
     </div>
   )
@@ -29,12 +29,12 @@ function PersonRow({ person }: { person: Person }) {
   return (
     <Link
       href={`/people/${person.id}`}
-      className="flex items-center justify-between bg-gray-900 rounded-lg px-4 py-3 hover:bg-gray-800 transition-colors"
+      className="flex items-center justify-between bg-lr-white rounded-lg lr-border-med px-4 py-3 hover:bg-lr-parchment transition-colors"
     >
       <div>
-        <p className="text-sm font-medium text-gray-100">{person.name}</p>
+        <p className="text-sm font-medium text-lr-ink">{person.name}</p>
         {(person.title || person.org_team) && (
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-lr-stone mt-0.5">
             {[person.title, person.org_team].filter(Boolean).join(' · ')}
           </p>
         )}
@@ -43,7 +43,7 @@ function PersonRow({ person }: { person: Person }) {
         {person.rapport != null && (
           <RapportDots value={person.rapport} />
         )}
-        <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-4 h-4 text-lr-stone" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       </div>
@@ -57,7 +57,7 @@ function RapportDots({ value }: { value: number }) {
       {[1, 2, 3, 4, 5].map(i => (
         <div
           key={i}
-          className={`w-1.5 h-1.5 rounded-full ${i <= value ? 'bg-blue-400' : 'bg-gray-700'}`}
+          className={`w-1.5 h-1.5 rounded-full ${i <= value ? 'bg-lr-red' : 'bg-lr-stone/30'}`}
         />
       ))}
     </div>

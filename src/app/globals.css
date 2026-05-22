@@ -1,14 +1,70 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+  --color-lr-ink: #1a1a1a;
+  --color-lr-red: #C8313A;
+  --color-lr-parchment: #f5f1ec;
+  --color-lr-stone: #8a7d6e;
+  --color-lr-asphalt: #2d2d2d;
+  --color-lr-amber: #B87333;
+  --color-lr-green: #4A7A5A;
+  --color-lr-white: #ffffff;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+/* Dark mode token overrides — same semantic names, different values */
+[data-theme="dark"] {
+  --color-lr-ink: #ece7de;
+  --color-lr-parchment: #1c1914;
+  --color-lr-white: #262219;
+  --color-lr-stone: #9b8d7d;
+  --lr-border-color: rgba(255, 255, 255, 0.09);
+  --lr-border-med-color: rgba(255, 255, 255, 0.15);
+}
+
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --lr-border-color: rgba(26, 26, 26, 0.10);
+  --lr-border-med-color: rgba(26, 26, 26, 0.18);
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--color-lr-parchment);
+  color: var(--color-lr-ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  /* 0.5px hairline borders — themed via CSS vars so dark mode works */
+  .lr-border {
+    border: 0.5px solid var(--lr-border-color);
+  }
+  .lr-border-med {
+    border: 0.5px solid var(--lr-border-med-color);
+  }
+  .lr-border-t {
+    border-top: 0.5px solid var(--lr-border-color);
+  }
+
+  /* Section title labels */
+  .label-caps {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+}
+
+/* Prose dark mode — override typography plugin's hardcoded colors */
+[data-theme="dark"] .prose {
+  --tw-prose-body: var(--color-lr-ink);
+  --tw-prose-headings: var(--color-lr-ink);
+  --tw-prose-bold: var(--color-lr-ink);
+  --tw-prose-links: #C8313A;
+  --tw-prose-bullets: var(--color-lr-stone);
+  --tw-prose-counters: var(--color-lr-stone);
+  --tw-prose-quotes: var(--color-lr-stone);
+  --tw-prose-code: var(--color-lr-ink);
+  --tw-prose-captions: var(--color-lr-stone);
 }

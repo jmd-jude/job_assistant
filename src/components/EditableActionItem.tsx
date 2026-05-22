@@ -20,18 +20,18 @@ export function EditableActionItem({ item, showOwner }: Props) {
 
   if (editing) {
     return (
-      <div className="bg-gray-900 rounded-lg px-4 py-3 space-y-2">
+      <div className="bg-lr-white rounded-lg lr-border-med px-4 py-3 space-y-2">
         <textarea
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={2}
-          className="w-full bg-gray-800 text-sm text-gray-100 rounded px-2 py-1.5 border border-gray-700 focus:outline-none focus:border-blue-500 resize-none"
+          className="w-full bg-lr-parchment text-sm text-lr-ink rounded px-2 py-1.5 lr-border focus:outline-none focus:ring-2 focus:ring-lr-red/20 resize-none"
         />
         <input
           type="date"
           value={dueDate}
           onChange={e => setDueDate(e.target.value)}
-          className="bg-gray-800 text-sm text-gray-400 rounded px-2 py-1.5 border border-gray-700 focus:outline-none focus:border-blue-500"
+          className="bg-lr-parchment text-sm text-lr-stone rounded px-2 py-1.5 lr-border focus:outline-none focus:ring-2 focus:ring-lr-red/20"
         />
         <div className="flex gap-2 pt-1">
           <button
@@ -46,7 +46,7 @@ export function EditableActionItem({ item, showOwner }: Props) {
               })
             }}
             disabled={isPending || !description.trim()}
-            className="text-xs px-2 py-1 rounded bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-50 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-lr-ink text-lr-parchment hover:opacity-80 disabled:opacity-40 transition-opacity"
           >
             {isPending ? 'Saving...' : 'Save'}
           </button>
@@ -56,7 +56,7 @@ export function EditableActionItem({ item, showOwner }: Props) {
               setDueDate(item.due_date ?? '')
               setEditing(false)
             }}
-            className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
           >
             Cancel
           </button>
@@ -66,22 +66,22 @@ export function EditableActionItem({ item, showOwner }: Props) {
   }
 
   return (
-    <div className="bg-gray-900 rounded-lg px-4 py-3 flex items-start justify-between gap-3">
+    <div className="bg-lr-white rounded-lg lr-border-med px-4 py-3 flex items-start justify-between gap-3">
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-100">{item.description}</p>
+        <p className="text-sm text-lr-ink">{item.description}</p>
         <div className="flex gap-3 mt-1 flex-wrap">
           {showOwner && item.people?.name && (
-            <span className="text-xs text-gray-500">{item.people.name}</span>
+            <span className="text-xs text-lr-stone">{item.people.name}</span>
           )}
           {item.due_date && (
-            <span className={`text-xs ${overdue ? 'text-red-400' : 'text-gray-500'}`}>
+            <span className={`text-xs ${overdue ? 'text-lr-red' : 'text-lr-stone'}`}>
               {formatDate(item.due_date)}
             </span>
           )}
           {item.meetings && (
             <Link
               href={`/meetings/${item.meetings.id}`}
-              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+              className="text-xs text-lr-stone hover:text-lr-red transition-colors"
             >
               {item.meetings.title ?? 'Untitled'} · {formatDate(item.meetings.date)}
             </Link>
@@ -92,20 +92,20 @@ export function EditableActionItem({ item, showOwner }: Props) {
         <button
           onClick={() => startTransition(() => markActionItemDone(item.id, 'done'))}
           disabled={isPending}
-          className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-green-900 hover:text-green-400 disabled:opacity-50 transition-colors"
+          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-green/20 hover:text-lr-green disabled:opacity-40 transition-colors"
         >
           Done
         </button>
         <button
           onClick={() => startTransition(() => markActionItemDone(item.id, 'dropped'))}
           disabled={isPending}
-          className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment disabled:opacity-40 transition-colors"
         >
           Drop
         </button>
         <button
           onClick={() => setEditing(true)}
-          className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
         >
           Edit
         </button>

@@ -50,14 +50,14 @@ export default function CapturePage() {
 
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-6">Capture</h1>
+      <h1 className="text-xl font-serif font-semibold mb-6">Capture</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 text-gray-100 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm"
+            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
           />
         </div>
         <div>
@@ -66,7 +66,7 @@ export default function CapturePage() {
             placeholder="Meeting title (optional — will be inferred)"
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 text-gray-100 placeholder-gray-600 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm"
+            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
           />
         </div>
         <div>
@@ -75,15 +75,15 @@ export default function CapturePage() {
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={12}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 text-gray-100 placeholder-gray-600 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm resize-none"
+            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm resize-none"
             autoFocus
           />
         </div>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+        {error && <p className="text-lr-red text-sm">{error}</p>}
         <button
           type="submit"
           disabled={status === 'loading' || !notes.trim()}
-          className="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
         >
           {status === 'loading' ? 'Parsing...' : 'Parse and save'}
         </button>
@@ -110,14 +110,14 @@ function ParseConfirmation({
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-full bg-green-900 flex items-center justify-center">
-          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <div className="w-8 h-8 rounded-full bg-lr-green/15 flex items-center justify-center">
+          <svg className="w-4 h-4 text-lr-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
         <div>
-          <p className="font-medium text-gray-100">Saved</p>
-          <p className="text-sm text-gray-500">{result.meeting.title || 'Untitled meeting'} &mdash; {total} items extracted</p>
+          <p className="font-medium text-lr-ink">Saved</p>
+          <p className="text-sm text-lr-stone">{result.meeting.title || 'Untitled meeting'} &mdash; {total} items extracted</p>
         </div>
       </div>
 
@@ -138,7 +138,7 @@ function ParseConfirmation({
 
       <button
         onClick={onReset}
-        className="mt-6 w-full py-3 rounded-lg bg-gray-800 text-gray-200 font-medium hover:bg-gray-700 transition-colors"
+        className="mt-6 w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 transition-opacity"
       >
         Capture another
       </button>
@@ -150,10 +150,10 @@ function ExtractSection({ title, items }: { title: string; items?: string[] }) {
   if (!items?.length) return null
   return (
     <div>
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{title}</h3>
+      <h3 className="label-caps text-lr-stone mb-2">{title}</h3>
       <div className="space-y-1">
         {items.map((item, i) => (
-          <div key={i} className="bg-gray-900 rounded-lg px-4 py-2.5 text-sm text-gray-200">
+          <div key={i} className="bg-lr-parchment rounded-lg px-4 py-2.5 text-sm text-lr-ink">
             {item}
           </div>
         ))}

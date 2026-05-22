@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV = [
   { href: '/capture', label: 'Capture', icon: PlusIcon },
@@ -24,10 +25,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="fixed top-0 left-0 right-0 flex justify-end px-4 py-2 z-50">
+      <header className="fixed top-0 left-0 right-0 flex justify-end items-center gap-1 px-4 py-2 z-50">
+        <ThemeToggle />
         <button
           onClick={handleLogout}
-          className="text-gray-600 hover:text-gray-400 transition-colors p-1"
+          className="text-lr-stone hover:text-lr-ink transition-colors p-1"
           title="Sign out"
         >
           <SignOutIcon className="w-4 h-4" />
@@ -36,7 +38,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto pb-20 pt-8">
         {children}
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 flex z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-lr-white lr-border-t flex z-50">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
           return (
@@ -44,7 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               key={href}
               href={href}
               className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs transition-colors ${
-                active ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
+                active ? 'text-lr-ink' : 'text-lr-stone hover:text-lr-ink'
               }`}
             >
               <Icon className="w-5 h-5" />

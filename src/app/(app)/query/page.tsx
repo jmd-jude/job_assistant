@@ -74,7 +74,7 @@ export default function QueryPage() {
 
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-semibold mb-4">Ask</h1>
+      <h1 className="text-xl font-serif font-semibold mb-4">Ask</h1>
 
       <div className="flex gap-2 mb-4">
         {MODES.map(m => (
@@ -83,8 +83,8 @@ export default function QueryPage() {
             onClick={() => { setMode(m.id); reset() }}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               mode === m.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-lr-ink text-lr-parchment'
+                : 'bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment'
             }`}
           >
             {m.label}
@@ -99,19 +99,19 @@ export default function QueryPage() {
             value={input}
             onChange={e => setInput(e.target.value)}
             rows={4}
-            className="w-full px-4 py-3 rounded-lg bg-gray-900 text-gray-100 placeholder-gray-600 border border-gray-800 focus:outline-none focus:border-blue-500 text-sm resize-none"
+            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm resize-none"
             autoFocus
           />
         )}
         {mode === 'weekly' && (
-          <p className="text-sm text-gray-500 py-2">
+          <p className="text-sm text-lr-stone py-2">
             Pulls everything from the last 7 days — meetings, action items, decisions, intelligence — and gives you a plain-language synthesis.
           </p>
         )}
         <button
           type="submit"
           disabled={status === 'loading' || (mode !== 'weekly' && !input.trim())}
-          className="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
         >
           {status === 'loading' ? loadingLabels[mode] : submitLabels[mode]}
         </button>
@@ -119,19 +119,19 @@ export default function QueryPage() {
 
       {answer && (
         <div className="mt-6">
-          <div className="bg-gray-900 rounded-lg px-4 py-4 text-sm text-gray-200 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-strong:text-white">
+          <div className="bg-lr-white rounded-xl lr-border-med px-4 py-4 text-sm text-lr-ink leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-strong:text-lr-ink prose-headings:text-lr-ink prose-a:text-lr-red">
             <Markdown>{answer}</Markdown>
           </div>
           <button
             onClick={reset}
-            className="mt-3 text-sm text-gray-500 hover:text-gray-300"
+            className="mt-3 text-sm text-lr-stone hover:text-lr-ink"
           >
             Ask another
           </button>
         </div>
       )}
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-lr-red">{error}</p>}
     </div>
   )
 }

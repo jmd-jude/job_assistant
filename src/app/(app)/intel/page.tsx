@@ -43,16 +43,16 @@ export default async function IntelPage({
   }
 
   const typeBadge: Record<string, string> = {
-    win: 'bg-green-900/50 text-green-400',
-    intelligence: 'bg-blue-900/50 text-blue-400',
-    observation: 'bg-gray-800 text-gray-400',
+    win: 'bg-lr-green/15 text-lr-green',
+    intelligence: 'bg-lr-red/10 text-lr-red',
+    observation: 'bg-lr-parchment text-lr-stone',
   }
 
   return (
     <div className="px-4 pt-6 max-w-2xl mx-auto pb-8">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Intel archive</h1>
-        <span className="text-sm text-gray-500">{counts.all} total</span>
+        <h1 className="text-xl font-serif font-semibold">Intel archive</h1>
+        <span className="text-sm text-lr-stone">{counts.all} total</span>
       </div>
 
       <div className="flex gap-2 mb-5 flex-wrap">
@@ -62,8 +62,8 @@ export default async function IntelPage({
             href={f.id === 'all' ? '/intel' : `/intel?type=${f.id}`}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               filter === f.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-lr-ink text-lr-parchment'
+                : 'bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment'
             }`}
           >
             {f.label}
@@ -77,19 +77,19 @@ export default async function IntelPage({
       {items?.length ? (
         <div className="space-y-2">
           {items.map(item => (
-            <div key={item.id} className="bg-gray-900 rounded-lg px-4 py-3">
+            <div key={item.id} className="bg-lr-white rounded-lg lr-border-med px-4 py-3">
               <div className="flex items-start gap-3">
-                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${typeBadge[item.type] ?? 'bg-gray-800 text-gray-400'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${typeBadge[item.type] ?? 'bg-lr-parchment text-lr-stone'}`}>
                   {typeLabel[item.type] ?? item.type}
                 </span>
-                <p className="text-sm text-gray-100 flex-1">{item.content}</p>
+                <p className="text-sm text-lr-ink flex-1">{item.content}</p>
               </div>
-              <p className="text-xs text-gray-600 mt-1.5 ml-9">{formatDate(item.date)}</p>
+              <p className="text-xs text-lr-stone mt-1.5 ml-9">{formatDate(item.date)}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-600 py-2">Nothing here yet.</p>
+        <p className="text-sm text-lr-stone py-2">Nothing here yet.</p>
       )}
     </div>
   )

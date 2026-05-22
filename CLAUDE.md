@@ -50,12 +50,13 @@ This is a mobile-first personal work assistant for a product strategy manager. I
 
 ## Design System
 
-The UI uses a "Lanterne Rouge" design system defined in `DESIGN.md`. Key rules:
-- `0.5px` borders everywhere (not `1px`)
-- Palette: ink `#1a1a1a`, red `#C8313A`, parchment `#f5f1ec`, stone `#8a7d6e`
-- Georgia serif for headlines and score numerals only; system sans for body
-- No `box-shadow` — elevation is achieved through background color layering (parchment > white > parchment)
-- Red is used exclusively for interaction states; no second accent color
-- `label-caps` style (11px, bold, uppercase, tracked) for section titles
+The UI implements the "Lanterne Rouge" design system defined in `DESIGN.md`. Key rules:
+- `0.5px` borders everywhere (not `1px`) — use the `.lr-border` / `.lr-border-med` CSS utility classes
+- Palette tokens are CSS custom properties defined in `@theme` in `globals.css`: `bg-lr-ink`, `bg-lr-parchment`, `bg-lr-white`, `text-lr-stone`, `text-lr-red`, etc.
+- Georgia serif (`font-serif`) for page `h1` headlines only; system sans for everything else
+- No `box-shadow` — elevation via background color layering (parchment page → white card → parchment inner)
+- Red (`text-lr-red`, `bg-lr-red`) exclusively for interaction states; no second accent color
+- `.label-caps` CSS class for all section title labels (11px, bold, uppercase, tracked)
+- Primary buttons: `bg-lr-ink text-lr-parchment hover:opacity-80`
 
-Note: the current implementation uses a dark Tailwind theme (gray-900 backgrounds) that diverges from the parchment-based DESIGN.md spec. The design doc represents the intended direction.
+**Dark mode** is implemented via `[data-theme="dark"]` on `<html>`. The same token names resolve to dark-palette values. A `ThemeToggle` component in `src/components/ThemeToggle.tsx` handles the toggle and persists to `localStorage`. An anti-flash inline script in `src/app/layout.tsx` applies the stored theme before paint.
