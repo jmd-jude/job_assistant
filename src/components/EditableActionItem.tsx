@@ -93,20 +93,20 @@ export function EditableActionItem({ item, showOwner }: Props) {
         <button
           onClick={() => startTransition(() => markActionItemDone(item.id, 'done'))}
           disabled={isPending}
-          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-green/20 hover:text-lr-green disabled:opacity-40 transition-colors"
+          className="text-xs px-2 py-2 rounded bg-lr-parchment text-lr-stone hover:bg-lr-green/20 hover:text-lr-green disabled:opacity-40 transition-colors"
         >
           Done
         </button>
         <button
           onClick={() => startTransition(() => markActionItemDone(item.id, 'dropped'))}
           disabled={isPending}
-          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment disabled:opacity-40 transition-colors"
+          className="text-xs px-2 py-2 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment disabled:opacity-40 transition-colors"
         >
           Drop
         </button>
         <button
           onClick={() => setEditing(true)}
-          className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
+          className="text-xs px-2 py-2 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
         >
           Edit
         </button>

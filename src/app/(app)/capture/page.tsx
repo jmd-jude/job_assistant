@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import type { ParseResult } from '@/lib/types'
 
 type Status = 'idle' | 'loading' | 'done' | 'error'
@@ -136,12 +137,20 @@ function ParseConfirmation({
         <ExtractSection title="Observations" items={parsed.observations?.map(o => o.content)} />
       </div>
 
-      <button
-        onClick={onReset}
-        className="mt-6 w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 transition-opacity"
-      >
-        Process another
-      </button>
+      <div className="mt-6 flex flex-col gap-2">
+        <Link
+          href={`/meetings/${result.meeting.id}`}
+          className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 transition-opacity text-center"
+        >
+          View meeting
+        </Link>
+        <button
+          onClick={onReset}
+          className="w-full py-3 rounded-lg bg-lr-parchment text-lr-stone font-medium hover:bg-lr-ink hover:text-lr-parchment transition-colors"
+        >
+          Process another
+        </button>
+      </div>
     </div>
   )
 }

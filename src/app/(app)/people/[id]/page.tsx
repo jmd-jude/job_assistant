@@ -57,9 +57,14 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           <h2 className="label-caps text-lr-stone mb-2">Recent meetings</h2>
           <div className="space-y-2">
             {meetings.map(m => (
-              <Link key={m.id} href={`/meetings/${m.id}`} className="block bg-lr-white rounded-lg lr-border-med px-4 py-3 hover:border-lr-red/40 transition-colors">
-                <p className="text-sm text-lr-ink">{m.title || 'Untitled'}</p>
-                <p className="text-xs text-lr-stone mt-0.5">{formatDate(m.date)}</p>
+              <Link key={m.id} href={`/meetings/${m.id}`} className="flex items-center justify-between bg-lr-white rounded-lg lr-border-med px-4 py-3 hover:border-lr-red/40 transition-colors">
+                <div>
+                  <p className="text-sm text-lr-ink">{m.title || 'Untitled'}</p>
+                  <p className="text-xs text-lr-stone mt-0.5">{formatDate(m.date)}</p>
+                </div>
+                <svg className="w-4 h-4 text-lr-stone shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             ))}
           </div>

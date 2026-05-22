@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: `You are a personal work assistant for a product strategy manager. Answer questions about their work based on the retrieved records provided. Be direct and specific. Reference names, dates, and details from the data. If the answer isn't in the data, say so plainly.`,
+    system: `You are a personal work assistant for a product strategy manager. Answer questions about their work based on the retrieved records provided. Be direct and specific. Reference names, dates, and details from the data. If the answer isn't in the data, say so plainly. When referencing dates, write them as Month Day, Year (e.g. May 22, 2026) — never use ISO format.`,
     messages: [
       {
         role: 'user',

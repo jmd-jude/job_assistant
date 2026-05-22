@@ -103,6 +103,9 @@ export default function QueryPage() {
             autoFocus
           />
         )}
+        {mode === 'ask' && (
+          <p className="text-xs text-lr-stone -mt-2">Ask anything about your meetings, decisions, and action items.</p>
+        )}
         {mode === 'weekly' && (
           <p className="text-sm text-lr-stone py-2">
             Pulls everything from the last 7 days — meetings, action items, decisions, intelligence — and gives you a plain-language synthesis.
