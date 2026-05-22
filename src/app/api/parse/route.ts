@@ -66,10 +66,11 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       personIdMap[p.name] = existing.id
+      await supabase.from('people').update({ last_interaction_date: date }).eq('id', existing.id)
     } else {
       const { data: newPerson } = await supabase
         .from('people')
-        .insert({ name: p.name, title: p.title ?? null, org_team: p.org_team ?? null })
+        .insert({ name: p.name, title: p.title ?? null, org_team: p.org_team ?? null, last_interaction_date: date })
         .select('id')
         .single()
       if (newPerson) personIdMap[p.name] = newPerson.id

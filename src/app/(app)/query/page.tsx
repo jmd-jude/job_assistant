@@ -55,7 +55,7 @@ export default function QueryPage() {
   ]
 
   const placeholders: Record<Mode, string> = {
-    ask: 'What do I owe Marcus? What decisions were made about pricing? What\'s still open from last Tuesday?',
+    ask: 'What do I owe? What decisions were made about pricing? What\'s still open from last Tuesday?',
     weekly: '',
     prep: 'Name a person or meeting to prep for — e.g. "1:1 with David" or "Priya Nair"',
   }

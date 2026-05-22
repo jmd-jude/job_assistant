@@ -1,26 +1,44 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 const NAV = [
   { href: '/capture', label: 'Capture', icon: PlusIcon },
-  { href: '/', label: 'Dashboard', icon: HomeIcon },
+  { href: '/', label: 'Home', icon: HomeIcon },
+  { href: '/meetings', label: 'Meetings', icon: CalendarIcon },
   { href: '/people', label: 'People', icon: UsersIcon },
   { href: '/query', label: 'Ask', icon: SearchIcon },
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-1 overflow-y-auto pb-20">
+      <header className="fixed top-0 left-0 right-0 flex justify-end px-4 py-2 z-50">
+        <button
+          onClick={handleLogout}
+          className="text-gray-600 hover:text-gray-400 transition-colors p-1"
+          title="Sign out"
+        >
+          <SignOutIcon className="w-4 h-4" />
+        </button>
+      </header>
+      <main className="flex-1 overflow-y-auto pb-20 pt-8">
         {children}
       </main>
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 flex z-50">
         {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href
+          const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
           return (
             <Link
               key={href}
@@ -67,6 +85,22 @@ function SearchIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  )
+}
+
+function CalendarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function SignOutIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
   )
 }
