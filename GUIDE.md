@@ -46,9 +46,9 @@ For people: anyone you mention by name gets extracted. The app does a case-insen
 
 The Ask tab has three modes: Ask, Week recap, and Prep me.
 
-**Ask** is a freeform question against all your data. It pulls up to 50 action items, 30 open questions, 30 decisions, 50 people, 20 meetings, and 20 wins/observations and sends all of it to Claude with your question. It's designed for specific lookups: "What do I still owe Marcus?" "What did we decide about the pricing model?" "What's still open from last Tuesday?" The answer is rendered as markdown so it can use structure when that's useful.
+**Ask** is a freeform question against all your data. It's designed for specific lookups: "What do I still owe Marcus?" "What did we decide about the pricing model?" "What's still open from last Tuesday?" The answer is rendered as markdown so it can use structure when that's useful.
 
-The limit here is the data window. It pulls the most recent records by created_at or date, capped at fixed limits. If you have a large history and you're asking about something old, it might not be in the context window. The query route doesn't filter by relevance; it just takes the N most recent records from each table and sends them wholesale.
+Under the hood, Ask uses vector similarity search rather than pulling a fixed slice of recent records. Your question gets embedded, and the 15 most semantically similar records from your knowledge base are retrieved and sent to Claude -- regardless of when they were captured. This means older records are just as accessible as recent ones, and the context Claude receives is relevant rather than just recent. The quality of an answer depends on whether you've captured anything related to the question, not on how recently you captured it.
 
 **Week recap** takes no input. It pulls everything from the last 7 days (same 7-day cutoff as the dashboard) and asks Claude to synthesize it into 3-5 short paragraphs: who you talked to, what moved forward, what's stuck, and 1-2 things worth thinking about. Use this on Fridays or before a skip-level when you want a coherent narrative of the week rather than a list of items.
 
@@ -89,7 +89,7 @@ This is the system prompt for the Ask (freeform) mode:
 You are a personal work assistant for a product strategy manager. Answer questions about their work based on the data provided. Be direct and specific. Use plain language. Reference specific names, dates, and details from the data. If something isn't in the data, say so plainly.
 ```
 
-The full database snapshot is passed as the user message: `Here is my work data:\n\n${context}\n\nQuestion: ${question}`.
+The retrieved records (up to 15, selected by vector similarity) are passed as the user message along with your question. Claude only sees what's relevant to what you asked, not your entire database.
 
 This prompt is intentionally minimal. It has one behavioral constraint (say so if you don't know) and one stylistic one (be specific). If you want Claude to change how it answers questions, this is the place to tune.
 
@@ -137,7 +137,7 @@ Weekly recap receives a 7-day data snapshot. Prep me receives a broader, person-
 
 **People matching is name-only and case-insensitive.** "Marcus Chen" and "Marcus" are two different people if the name strings don't match exactly. If you refer to the same person inconsistently across notes, you'll end up with duplicate records.
 
-**The query context window is capped.** The Ask and synthesize routes pull a fixed number of recent records: 50 action items, 30 questions, 30 decisions, etc. If your history is large, older records fall out of context. There's no relevance ranking or semantic search.
+**Ask uses semantic retrieval; Week Recap and Prep Me don't.** The Ask route uses vector similarity search to find the most relevant records for your question, so it scales well as your history grows. Week Recap and Prep Me still use time-bounded queries (7-day window and fixed record limits respectively). For those modes, if your history is large, older records may fall out of context.
 
 **Observations and wins don't age off the database.** The 7-day window on the dashboard and synthesize routes is a query filter, not a deletion. Everything is still in the database; it just stops appearing in those views after a week. If you want to surface older observations through Ask, they're accessible there (within the 20-record cap for that table).
 

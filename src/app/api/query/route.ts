@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -12,40 +14,67 @@ export async function POST(request: NextRequest) {
   const { question } = await request.json()
   if (!question?.trim()) return NextResponse.json({ error: 'No question provided' }, { status: 400 })
 
-  // Pull relevant context from the DB
-  const [
-    { data: actionItems },
-    { data: openQuestions },
-    { data: decisions },
-    { data: people },
-    { data: meetings },
-    { data: wins },
-  ] = await Promise.all([
-    supabase.from('action_items').select('*, people(name)').order('created_at', { ascending: false }).limit(50),
-    supabase.from('open_questions').select('*').order('created_at', { ascending: false }).limit(30),
-    supabase.from('decisions').select('*').order('created_at', { ascending: false }).limit(30),
-    supabase.from('people').select('*').order('created_at', { ascending: false }).limit(50),
-    supabase.from('meetings').select('*').order('date', { ascending: false }).limit(20),
-    supabase.from('wins_and_observations').select('*').order('date', { ascending: false }).limit(20),
-  ])
+  // Embed the question and retrieve semantically similar records
+  const embRes = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: question,
+  })
+  const queryVector = embRes.data[0].embedding
 
-  const context = JSON.stringify({
-    action_items: actionItems,
-    open_questions: openQuestions,
-    decisions,
-    people,
-    meetings,
-    wins_and_observations: wins,
-  }, null, 2)
+  const { data: matches, error: matchError } = await supabase.rpc('match_parsed_items', {
+    query_embedding: queryVector,
+    match_count: 15,
+  })
+
+  if (matchError) console.error('[query] vector search failed:', matchError)
+
+  // Fetch full linked records for each match
+  const context: Record<string, unknown>[] = []
+  for (const match of matches ?? []) {
+    const base = {
+      type: match.item_type,
+      content: match.content,
+      similarity: Math.round(match.similarity * 100) / 100,
+    }
+
+    if (match.linked_record_id) {
+      if (match.item_type === 'action_item') {
+        const { data } = await supabase
+          .from('action_items')
+          .select('*, people(name), meetings(title, date)')
+          .eq('id', match.linked_record_id)
+          .single()
+        context.push({ ...base, record: data })
+      } else if (match.item_type === 'decision') {
+        const { data } = await supabase
+          .from('decisions')
+          .select('*, meetings(title, date)')
+          .eq('id', match.linked_record_id)
+          .single()
+        context.push({ ...base, record: data })
+      } else if (match.item_type === 'open_question') {
+        const { data } = await supabase
+          .from('open_questions')
+          .select('*, people(name)')
+          .eq('id', match.linked_record_id)
+          .single()
+        context.push({ ...base, record: data })
+      } else {
+        context.push(base)
+      }
+    } else {
+      context.push(base)
+    }
+  }
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
-    system: `You are a personal work assistant for a product strategy manager. Answer questions about their work based on the data provided. Be direct and specific. Use plain language. Reference specific names, dates, and details from the data. If something isn't in the data, say so plainly.`,
+    system: `You are a personal work assistant for a product strategy manager. Answer questions about their work based on the retrieved records provided. Be direct and specific. Reference names, dates, and details from the data. If the answer isn't in the data, say so plainly.`,
     messages: [
       {
         role: 'user',
-        content: `Here is my work data:\n\n${context}\n\nQuestion: ${question}`,
+        content: `Relevant records from my knowledge base:\n\n${JSON.stringify(context, null, 2)}\n\nQuestion: ${question}`,
       },
     ],
   })

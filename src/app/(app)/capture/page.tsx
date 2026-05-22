@@ -85,7 +85,7 @@ export default function CapturePage() {
           disabled={status === 'loading' || !notes.trim()}
           className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
         >
-          {status === 'loading' ? 'Parsing...' : 'Parse and save'}
+          {status === 'loading' ? 'Processing...' : 'Process'}
         </button>
       </form>
     </div>
@@ -140,7 +140,7 @@ function ParseConfirmation({
         onClick={onReset}
         className="mt-6 w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 transition-opacity"
       >
-        Capture another
+        Process another
       </button>
     </div>
   )

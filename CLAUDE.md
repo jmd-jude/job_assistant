@@ -16,13 +16,16 @@ No test suite exists yet.
 
 ## Environment
 
-Three env vars are required in `.env.local`:
+Four env vars are required in `.env.local`:
 
 ```
 ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
+
+`OPENAI_API_KEY` is used exclusively for generating embeddings via `text-embedding-3-small`. All reasoning and generation still goes through Claude.
 
 ## Architecture
 
@@ -32,10 +35,12 @@ This is a mobile-first personal work assistant for a product strategy manager. I
 
 **Data layer.** Supabase (Postgres) is the only database. The schema lives in `supabase/schema.sql`. Tables: `people`, `relationships`, `projects`, `meetings`, `decisions`, `action_items`, `wins_and_observations`, `open_questions`, `parsed_items`. Two Supabase client utilities exist: `src/lib/supabase/server.ts` (server components and API routes) and `src/lib/supabase/client.ts` (client components). All tables have RLS enabled; authenticated users see all rows (single-user app).
 
+`parsed_items` is the retrieval backbone. It has an `embedding vector(1536)` column populated at ingest time and a `match_parsed_items(query_embedding, match_count)` RPC function for cosine similarity search. The `pgvector` extension must be enabled in Supabase for this to work.
+
 **Three API routes, each calling Claude:**
-- `POST /api/parse` — takes raw meeting notes, calls `claude-sonnet-4-6` to extract structured JSON (people, decisions, action items, open questions, observations), then writes everything to Supabase in sequence. People are upsert-matched by name (case-insensitive `ilike`).
-- `POST /api/query` — pulls up to 50 records from each table, serializes to JSON, and asks Claude to answer a freeform question.
-- `POST /api/synthesize` — two modes: `weekly` (7-day summary) and `prep` (pre-meeting brief for a named person or meeting).
+- `POST /api/parse` — takes raw meeting notes, calls `claude-sonnet-4-6` to extract structured JSON (people, decisions, action items, open questions, observations), writes everything to Supabase in sequence, then generates an OpenAI embedding for each `parsed_items` row (with meeting title prepended for context). People are upsert-matched by name (case-insensitive `ilike`).
+- `POST /api/query` — embeds the incoming question via OpenAI, calls the `match_parsed_items` Supabase RPC to retrieve the 15 most semantically similar records, fetches their linked records with joins, and asks Claude to answer based on that relevant context.
+- `POST /api/synthesize` — two modes: `weekly` (7-day summary using time-bounded queries) and `prep` (pre-meeting brief for a named person or meeting, with person-aware filtering). These modes use direct table queries, not vector retrieval.
 
 **Server actions.** `src/lib/actions.ts` has two mutations used directly in form `formAction` props: `markActionItemDone` and `markQuestionAnswered`. These use inline `'use server'` directives inside the dashboard page's form buttons.
 
@@ -47,6 +52,12 @@ This is a mobile-first personal work assistant for a product strategy manager. I
 - `/query` — freeform ask interface calling `/api/query`
 
 **Types.** All shared TypeScript interfaces are in `src/lib/types.ts`, including `ParseResult` (the Claude extraction schema).
+
+## Known Gotchas
+
+**Markdown fence stripping.** Claude occasionally wraps JSON responses in ` ```json ` fences despite being instructed not to. `/api/parse/route.ts` strips them before `JSON.parse`. Don't remove that step.
+
+**Schema migrations.** `supabase/schema.sql` includes `ALTER TABLE` migrations at the bottom (adding `type` to `wins_and_observations`, `related_person_id` to `open_questions`). The base `CREATE TABLE` blocks don't have these columns. If standing up a fresh instance, run the full file top to bottom -- but if the live DB already has the base tables, only the migration lines at the bottom need to be run.
 
 ## Design System
 

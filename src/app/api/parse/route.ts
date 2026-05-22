@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase/server'
 import type { ParseResult } from '@/lib/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+async function embed(text: string): Promise<number[]> {
+  const res = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: text,
+  })
+  return res.data[0].embedding
+}
 
 const SYSTEM_PROMPT = `You are a personal work assistant helping a product strategy manager at a large company capture and organize information from their day.
 
@@ -84,6 +94,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const insertParsedItem = async (
+      item_type: string,
+      content: string,
+      linked_record_id?: string,
+      meetingTitle?: string | null
+    ) => {
+      const { data: pi, error: piError } = await supabase.from('parsed_items').insert({
+        meeting_id: meeting.id,
+        item_type,
+        content,
+        linked_record_id: linked_record_id ?? null,
+      }).select('id').single()
+      if (piError) {
+        console.error(`[parse] parsed_items (${item_type}) insert failed:`, piError)
+        return
+      }
+      try {
+        const embeddingText = meetingTitle ? `${meetingTitle}: ${content}` : content
+        const vector = await embed(embeddingText)
+        const { error: embError } = await supabase
+          .from('parsed_items')
+          .update({ embedding: vector })
+          .eq('id', pi.id)
+        if (embError) console.error(`[parse] embedding update failed (${item_type}):`, embError)
+      } catch (e) {
+        console.error(`[parse] embed() failed (${item_type}):`, e)
+      }
+    }
+
     for (const d of parsed.decisions ?? []) {
       const { data: decision, error: decisionError } = await supabase
         .from('decisions')
@@ -98,15 +137,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (decisionError) console.error('[parse] decision insert failed:', d.title, decisionError)
-      if (decision) {
-        const { error: piError } = await supabase.from('parsed_items').insert({
-          meeting_id: meeting.id,
-          item_type: 'decision',
-          content: d.title,
-          linked_record_id: decision.id,
-        })
-        if (piError) console.error('[parse] parsed_items (decision) insert failed:', piError)
-      }
+      if (decision) await insertParsedItem('decision', d.title, decision.id, title)
     }
 
     for (const a of parsed.action_items ?? []) {
@@ -125,15 +156,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (aiError) console.error('[parse] action_item insert failed:', a.description, aiError)
-      if (actionItem) {
-        const { error: piError } = await supabase.from('parsed_items').insert({
-          meeting_id: meeting.id,
-          item_type: 'action_item',
-          content: a.description,
-          linked_record_id: actionItem.id,
-        })
-        if (piError) console.error('[parse] parsed_items (action_item) insert failed:', piError)
-      }
+      if (actionItem) await insertParsedItem('action_item', a.description, actionItem.id, title)
     }
 
     for (const q of parsed.open_questions ?? []) {
@@ -153,15 +176,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (qError) console.error('[parse] open_question insert failed:', q.question, qError)
-      if (question) {
-        const { error: piError } = await supabase.from('parsed_items').insert({
-          meeting_id: meeting.id,
-          item_type: 'open_question',
-          content: q.question,
-          linked_record_id: question.id,
-        })
-        if (piError) console.error('[parse] parsed_items (open_question) insert failed:', piError)
-      }
+      if (question) await insertParsedItem('open_question', q.question, question.id, title)
     }
 
     for (const o of parsed.observations ?? []) {
@@ -171,13 +186,7 @@ export async function POST(request: NextRequest) {
         type: o.type ?? 'observation',
       })
       if (obsError) console.error('[parse] wins_and_observations insert failed:', o.content, obsError)
-
-      const { error: piError } = await supabase.from('parsed_items').insert({
-        meeting_id: meeting.id,
-        item_type: 'observation',
-        content: o.content,
-      })
-      if (piError) console.error('[parse] parsed_items (observation) insert failed:', piError)
+      await insertParsedItem('observation', o.content, undefined, title)
     }
 
     const attendeeIds = Object.values(personIdMap)

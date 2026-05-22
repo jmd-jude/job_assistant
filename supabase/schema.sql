@@ -116,3 +116,42 @@ alter table wins_and_observations
 alter table open_questions
   add column if not exists related_person_id uuid references people(id) on delete set null;
 
+-- Migration 002: vector embeddings on parsed_items
+
+create extension if not exists vector;
+
+alter table parsed_items
+  add column if not exists embedding vector(1536);
+
+create index if not exists parsed_items_embedding_idx
+  on parsed_items
+  using ivfflat (embedding vector_cosine_ops)
+  with (lists = 100);
+
+create or replace function match_parsed_items(
+  query_embedding vector(1536),
+  match_count int default 15
+)
+returns table (
+  id uuid,
+  meeting_id uuid,
+  item_type text,
+  content text,
+  linked_record_id uuid,
+  similarity float
+)
+language sql stable
+as $$
+  select
+    id,
+    meeting_id,
+    item_type,
+    content,
+    linked_record_id,
+    1 - (embedding <=> query_embedding) as similarity
+  from parsed_items
+  where embedding is not null
+  order by embedding <=> query_embedding
+  limit match_count;
+$$;
+
