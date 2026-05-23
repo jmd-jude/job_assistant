@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function markActionItemDone(id: string, status: 'done' | 'dropped') {
   const supabase = await createClient()
-  await supabase.from('action_items').update({ status }).eq('id', id)
+  await supabase.from('action_items').update({ status, resolved_at: new Date().toISOString() }).eq('id', id)
   revalidatePath('/')
 }
 

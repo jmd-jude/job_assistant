@@ -34,7 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col h-dvh">
       <header className="fixed top-0 left-0 right-0 flex justify-end items-center gap-1 px-4 py-2 z-50">
         <ThemeToggle />
         <button
@@ -79,7 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-lr-white lr-border-t flex z-50">
+      <nav className="bg-lr-white lr-border-t flex z-50 shrink-0">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
           return (

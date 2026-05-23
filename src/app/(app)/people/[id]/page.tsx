@@ -29,20 +29,30 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         &larr; People
       </Link>
       <div className="mb-6">
-        <h1 className="text-2xl font-serif font-semibold">{person.name}</h1>
-        {(person.title || person.org_team) && (
-          <p className="text-lr-stone mt-1">{[person.title, person.org_team].filter(Boolean).join(' · ')}</p>
-        )}
-        {person.last_interaction_date && (
-          <p className="text-sm text-lr-stone mt-1">Last interaction: {formatDate(person.last_interaction_date)}</p>
-        )}
-        {person.rapport != null && (
-          <div className="flex gap-1 mt-2">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className={`w-2 h-2 rounded-full ${i <= person.rapport! ? 'bg-lr-red' : 'bg-lr-stone/30'}`} />
-            ))}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-serif font-semibold">{person.name}</h1>
+            {(person.title || person.org_team) && (
+              <p className="text-lr-stone mt-1">{[person.title, person.org_team].filter(Boolean).join(' · ')}</p>
+            )}
+            {person.last_interaction_date && (
+              <p className="text-sm text-lr-stone mt-1">Last interaction: {formatDate(person.last_interaction_date)}</p>
+            )}
+            {person.rapport != null && (
+              <div className="flex gap-1 mt-2">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className={`w-2 h-2 rounded-full ${i <= person.rapport! ? 'bg-lr-red' : 'bg-lr-stone/30'}`} />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+          <Link
+            href={`/query?mode=prep&input=${encodeURIComponent(person.name)}`}
+            className="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium bg-lr-ink text-lr-parchment hover:opacity-80 transition-opacity"
+          >
+            Prep me
+          </Link>
+        </div>
       </div>
 
       {person.notes && (

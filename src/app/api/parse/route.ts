@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .insert({ title, date, raw_notes })
+      .insert({ title, date, raw_notes, raw_parse: parsed })
       .select()
       .single()
 

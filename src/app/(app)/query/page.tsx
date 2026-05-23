@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Markdown from 'react-markdown'
 
@@ -10,9 +11,13 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 type Turn = { role: 'user' | 'assistant'; content: string }
 
-export default function QueryPage() {
-  const [mode, setMode] = useState<Mode>('ask')
-  const [input, setInput] = useState('')
+function QueryPageInner() {
+  const searchParams = useSearchParams()
+  const initialMode = (searchParams.get('mode') as Mode) || 'ask'
+  const initialInput = searchParams.get('input') || ''
+
+  const [mode, setMode] = useState<Mode>(initialMode)
+  const [input, setInput] = useState(initialInput)
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -307,5 +312,13 @@ export default function QueryPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function QueryPage() {
+  return (
+    <Suspense>
+      <QueryPageInner />
+    </Suspense>
   )
 }
