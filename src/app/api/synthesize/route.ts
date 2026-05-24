@@ -150,7 +150,8 @@ Skip any section where there's nothing real to say. Be specific. Use actual name
     const personMap: Record<string, { name: string; total: number; done: number; open: number; overdue: number; oldestOpenDays: number }> = {}
     for (const item of allActionItems ?? []) {
       if (item.owner_type !== 'other' || !item.owner_person_id) continue
-      const name = (item.people as { name: string } | null)?.name ?? item.owner_person_id
+      const people = item.people as { name: string } | { name: string }[] | null
+      const name = (Array.isArray(people) ? people[0]?.name : people?.name) ?? item.owner_person_id
       if (!personMap[item.owner_person_id]) {
         personMap[item.owner_person_id] = { name, total: 0, done: 0, open: 0, overdue: 0, oldestOpenDays: 0 }
       }
@@ -190,7 +191,7 @@ Skip any section where there's nothing real to say. Be specific. Use actual name
     // Question aging
     const agingQuestions = (openQuestions ?? []).map(q => ({
       question: q.question,
-      person: (q.people as { name: string } | null)?.name ?? null,
+      person: (Array.isArray(q.people) ? q.people[0]?.name : (q.people as { name: string } | null)?.name) ?? null,
       ageDays: Math.floor((Date.now() - new Date(q.created_at).getTime()) / 86400000),
     }))
 
