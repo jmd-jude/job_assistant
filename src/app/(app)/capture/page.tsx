@@ -4,9 +4,42 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { ParseResult } from '@/lib/types'
 
+type Tab = 'meeting' | 'quick'
 type Status = 'idle' | 'loading' | 'done' | 'error'
 
 export default function CapturePage() {
+  const [tab, setTab] = useState<Tab>('meeting')
+
+  function switchTab(t: Tab) {
+    setTab(t)
+  }
+
+  return (
+    <div className="px-4 pt-6 max-w-2xl mx-auto">
+      <h1 className="text-xl font-serif font-semibold mb-4">Capture</h1>
+
+      <div className="flex gap-2 mb-6">
+        {(['meeting', 'quick'] as Tab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => switchTab(t)}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              tab === t
+                ? 'bg-lr-ink text-lr-parchment'
+                : 'bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment'
+            }`}
+          >
+            {t === 'meeting' ? 'Meeting notes' : 'Quick note'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'meeting' ? <MeetingCapture /> : <QuickCapture />}
+    </div>
+  )
+}
+
+function MeetingCapture() {
   const [notes, setNotes] = useState('')
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(todayISO())
@@ -50,46 +83,103 @@ export default function CapturePage() {
   }
 
   return (
-    <div className="px-4 pt-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-serif font-semibold mb-6">Capture</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
-          />
-        </div>
-        <div>
-          <input
-            type="text"
-            placeholder="Meeting title (optional — will be inferred)"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
-          />
-        </div>
-        <div>
-          <textarea
-            placeholder="What happened? Who was there, what was decided, what do you need to do, what's still unclear..."
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={12}
-            className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm resize-none"
-            autoFocus
-          />
-        </div>
-        {error && <p className="text-lr-red text-sm">{error}</p>}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <input
+          type="date"
+          value={date}
+          onChange={e => setDate(e.target.value)}
+          className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
+        />
+      </div>
+      <div>
+        <input
+          type="text"
+          placeholder="Meeting title (optional — will be inferred)"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm"
+        />
+      </div>
+      <div>
+        <textarea
+          placeholder="What happened? Who was there, what was decided, what do you need to do, what's still unclear..."
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={12}
+          className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm resize-none"
+          autoFocus
+        />
+      </div>
+      {error && <p className="text-lr-red text-sm">{error}</p>}
+      <button
+        type="submit"
+        disabled={status === 'loading' || !notes.trim()}
+        className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
+      >
+        {status === 'loading' ? 'Processing...' : 'Process'}
+      </button>
+    </form>
+  )
+}
+
+function QuickCapture() {
+  const [content, setContent] = useState('')
+  const [status, setStatus] = useState<Status>('idle')
+  const [error, setError] = useState<string | null>(null)
+
+  async function save() {
+    if (!content.trim() || status === 'loading') return
+    setStatus('loading')
+    setError(null)
+
+    const res = await fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setError(data.error || 'Something went wrong')
+      setStatus('error')
+    } else {
+      setContent('')
+      setStatus('done')
+      setTimeout(() => setStatus('idle'), 2000)
+    }
+  }
+
+  return (
+    <form onSubmit={e => { e.preventDefault(); save() }} className="space-y-4">
+      <textarea
+        placeholder="Jot something down..."
+        value={content}
+        onChange={e => setContent(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault()
+            save()
+          }
+        }}
+        rows={8}
+        className="w-full px-4 py-3 rounded-lg bg-lr-white text-lr-ink placeholder-lr-stone lr-border-med focus:outline-none focus:ring-2 focus:ring-lr-red/20 text-sm resize-none"
+        autoFocus
+      />
+      {error && <p className="text-lr-red text-sm">{error}</p>}
+      <div className="flex items-center gap-4">
         <button
           type="submit"
-          disabled={status === 'loading' || !notes.trim()}
-          className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
+          disabled={status === 'loading' || !content.trim()}
+          className="px-6 py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
         >
-          {status === 'loading' ? 'Processing...' : 'Process'}
+          {status === 'loading' ? 'Saving...' : 'Save note'}
         </button>
-      </form>
-    </div>
+        {status === 'done' && (
+          <span className="text-sm text-lr-stone">Saved</span>
+        )}
+      </div>
+    </form>
   )
 }
 
@@ -109,7 +199,7 @@ function ParseConfirmation({
     (parsed.observations?.length ?? 0)
 
   return (
-    <div className="px-4 pt-6 max-w-2xl mx-auto">
+    <div>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-full bg-lr-green/15 flex items-center justify-center">
           <svg className="w-4 h-4 text-lr-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
