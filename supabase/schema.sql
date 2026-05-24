@@ -196,6 +196,39 @@ create table if not exists conversation_turns (
 alter table conversations enable row level security;
 alter table conversation_turns enable row level security;
 
+-- Migration 005: dropped status on open_questions
+
+alter table open_questions
+  drop constraint if exists open_questions_status_check;
+
+alter table open_questions
+  add constraint open_questions_status_check
+  check (status in ('open', 'answered', 'dropped'));
+
 create policy "authenticated only" on conversations for all to authenticated using (true) with check (true);
 create policy "authenticated only" on conversation_turns for all to authenticated using (true) with check (true);
+
+-- Migration 006: quick capture notes table + undocumented column drift
+
+alter table meetings
+  add column if not exists raw_parse jsonb;
+
+alter table action_items
+  add column if not exists resolved_at timestamptz;
+
+create table if not exists notes (
+  id uuid primary key default gen_random_uuid(),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table notes enable row level security;
+create policy "authenticated only" on notes for all to authenticated using (true) with check (true);
+
+alter table parsed_items
+  drop constraint if exists parsed_items_item_type_check;
+
+alter table parsed_items
+  add constraint parsed_items_item_type_check
+  check (item_type in ('decision', 'action_item', 'observation', 'open_question', 'recap', 'note'));
 

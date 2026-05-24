@@ -35,7 +35,7 @@ export interface OpenQuestion {
   id: string
   question: string
   context: string | null
-  status: 'open' | 'answered'
+  status: 'open' | 'answered' | 'dropped'
   answered_at: string | null
   related_person_id: string | null
   created_at: string

@@ -23,7 +23,7 @@ The user will give you raw, unstructured notes from a meeting or interaction. Ex
 - people: array of {name, title, org_team} — anyone mentioned by name
 - decisions: array of {title, context, outcome, alternatives_considered}
 - action_items: array of {description, owner_type ("me" or "other"), owner_name (if other), due_date (ISO 8601 date if an explicit date or day was stated, otherwise null — do not infer dates from vague terms like "soon" or "EOW")}
-- open_questions: array of {question, context, related_person_name (name of person the question is about, if applicable, else null)} — only include questions the user explicitly flagged as unresolved or uncertain. Do not infer questions from subtext, observations, or things the user didn't directly state as open.
+- open_questions: array of {question, context, related_person_name (name of person the question is about, if applicable, else null)} — capture anything the user flagged as unresolved, uncertain, or needing an answer: explicit "open question:" labels, phrases like "still unclear", "not sure", "TBD", "unknown", or direct questions left unanswered. Do not convert an open question into an action item just because it implies follow-up — if the answer isn't known, it's a question. Do not infer questions from subtext or things the user presented as settled.
 - observations: array of {content, type} — type is one of: "win" (a positive outcome or accomplishment), "intelligence" (political or organizational insight worth remembering), or "observation" (anything else notable)
 - suggested_meeting_title: string — infer a short title if none was provided
 

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { markQuestionAnswered, deleteQuestion } from '@/lib/actions'
+import { markQuestionAnswered, deleteQuestion, dropQuestion } from '@/lib/actions'
 import { EditableActionItem } from '@/components/EditableActionItem'
 import { formatDate } from '@/lib/utils'
 import type { OpenQuestion, WinObservation } from '@/lib/types'
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       <Section title="Open questions" count={questions?.length}>
         {questions?.length ? (
           questions.map(q => (
-            <QuestionRow key={q.id} question={q} meeting={questionMeetingMap[q.id] ?? null} markAnswered={markQuestionAnswered} deleteQ={deleteQuestion} />
+            <QuestionRow key={q.id} question={q} meeting={questionMeetingMap[q.id] ?? null} markAnswered={markQuestionAnswered} dropQ={dropQuestion} deleteQ={deleteQuestion} />
           ))
         ) : (
           <Empty>No open questions.</Empty>
@@ -185,11 +185,13 @@ function QuestionRow({
   question,
   meeting,
   markAnswered,
+  dropQ,
   deleteQ,
 }: {
   question: OpenQuestion
   meeting: { id: string; title: string | null; date: string } | null
   markAnswered: (id: string) => Promise<void>
+  dropQ: (id: string) => Promise<void>
   deleteQ: (id: string) => Promise<void>
 }) {
   return (
@@ -217,6 +219,15 @@ function QuestionRow({
             className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
           >
             Answered
+          </button>
+        </form>
+        <form>
+          <button
+            formAction={async () => { 'use server'; await dropQ(question.id) }}
+            className="text-xs px-2 py-1 rounded bg-lr-parchment text-lr-stone hover:bg-lr-ink hover:text-lr-parchment transition-colors"
+            title="Mark as no longer relevant"
+          >
+            Drop
           </button>
         </form>
         <form>

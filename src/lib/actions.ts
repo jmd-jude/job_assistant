@@ -27,6 +27,32 @@ export async function markQuestionAnswered(id: string) {
   revalidatePath('/')
 }
 
+export async function createActionItem(description: string, dueDate: string | null) {
+  const supabase = await createClient()
+  await supabase.from('action_items').insert({
+    description,
+    due_date: dueDate || null,
+    owner_type: 'me',
+    status: 'open',
+  })
+  revalidatePath('/')
+}
+
+export async function updatePersonNotes(id: string, notes: string) {
+  const supabase = await createClient()
+  await supabase.from('people').update({ notes: notes || null }).eq('id', id)
+  revalidatePath(`/people/${id}`)
+}
+
+export async function dropQuestion(id: string) {
+  const supabase = await createClient()
+  await supabase
+    .from('open_questions')
+    .update({ status: 'dropped' })
+    .eq('id', id)
+  revalidatePath('/')
+}
+
 export async function deleteQuestion(id: string) {
   const supabase = await createClient()
   await supabase.from('open_questions').delete().eq('id', id)

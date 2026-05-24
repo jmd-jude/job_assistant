@@ -11,18 +11,20 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
     { data: meeting },
     { data: actionItems },
     { data: decisions },
-    { data: questions },
+    { data: parsedQuestions },
     { data: observations },
   ] = await Promise.all([
     supabase.from('meetings').select('*').eq('id', id).single(),
     supabase.from('action_items').select('*, people(name)').eq('related_meeting_id', id),
     supabase.from('decisions').select('*').eq('meeting_id', id),
-    supabase.from('open_questions').select('*, people(name)').eq(
-      'id',
-      supabase.from('parsed_items').select('linked_record_id').eq('meeting_id', id).eq('item_type', 'open_question')
-    ),
+    supabase.from('parsed_items').select('linked_record_id').eq('meeting_id', id).eq('item_type', 'open_question'),
     supabase.from('parsed_items').select('*').eq('meeting_id', id).eq('item_type', 'observation'),
   ])
+
+  const questionIds = (parsedQuestions ?? []).map(p => p.linked_record_id).filter(Boolean) as string[]
+  const { data: questions } = questionIds.length > 0
+    ? await supabase.from('open_questions').select('*, people(name)').in('id', questionIds)
+    : { data: [] }
 
   if (!meeting) notFound()
 

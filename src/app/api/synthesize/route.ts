@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
     userMessage = `Here is my work data from this week:\n\n${context}\n\nGive me the weekly synthesis.`
 
   } else if (mode === 'prep') {
-    // Find people mentioned by name in the input for person-specific full-history context
     const { data: allPeople } = await supabase.from('people').select('id, name')
     const matched = (allPeople ?? []).filter(p =>
       input.toLowerCase().includes(p.name.toLowerCase())
@@ -58,50 +57,178 @@ export async function POST(request: NextRequest) {
     const matchedIds = matched.map(p => p.id)
     const hasMatch = matchedIds.length > 0
 
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
     const [
-      { data: meetings },
-      { data: allOpenItems },
-      { data: allOpenQuestions },
-      { data: decisions },
-      { data: observations },
       { data: personRecords },
-      { data: personActionItems },
-      { data: personQuestions },
+      { data: personMeetings },
+      { data: personOpenItems },
+      { data: personRecentlyClosedItems },
+      { data: personOpenQuestions },
+      { data: personRelationships },
+      { data: myOpenItems },
+      { data: decisions },
     ] = await Promise.all([
-      // All meetings, not just 7 days
-      supabase.from('meetings').select('*').order('date', { ascending: false }).limit(30),
-      supabase.from('action_items').select('*, people(name)').eq('status', 'open').order('due_date', { ascending: true, nullsFirst: false }),
-      supabase.from('open_questions').select('*, people(name)').eq('status', 'open'),
-      // All decisions, not just 7 days
-      supabase.from('decisions').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('wins_and_observations').select('*').order('date', { ascending: false }).limit(30),
-      // Person-specific: full records for matched people
       hasMatch
         ? supabase.from('people').select('*').in('id', matchedIds)
         : supabase.from('people').select('*').order('last_interaction_date', { ascending: false, nullsFirst: false }).limit(20),
-      // All action items owned by matched people, regardless of date
+      // Meetings this person attended, most recent first
       hasMatch
-        ? supabase.from('action_items').select('*, people(name)').in('owner_person_id', matchedIds).order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] }),
-      // All questions related to matched people
+        ? supabase.from('meetings').select('id, title, date, raw_notes').overlaps('attendee_ids', matchedIds).order('date', { ascending: false }).limit(20)
+        : supabase.from('meetings').select('id, title, date').order('date', { ascending: false }).limit(15),
+      // Open commitments owned by this person
       hasMatch
-        ? supabase.from('open_questions').select('*, people(name)').in('related_person_id', matchedIds)
+        ? supabase.from('action_items').select('description, due_date, owner_type, created_at').in('owner_person_id', matchedIds).eq('status', 'open').order('due_date', { ascending: true, nullsFirst: false })
         : Promise.resolve({ data: [] }),
+      // Things they recently resolved (last 30 days) -- shows follow-through
+      hasMatch
+        ? supabase.from('action_items').select('description, resolved_at').in('owner_person_id', matchedIds).eq('status', 'done').gte('resolved_at', thirtyDaysAgo.toISOString()).order('resolved_at', { ascending: false })
+        : Promise.resolve({ data: [] }),
+      // All open questions linked to this person
+      hasMatch
+        ? supabase.from('open_questions').select('question, context, created_at').in('related_person_id', matchedIds).eq('status', 'open')
+        : supabase.from('open_questions').select('question, context').eq('status', 'open').limit(20),
+      // Relationships: who they report to, peers, collaborators
+      hasMatch
+        ? supabase.from('relationships').select('relationship_type, notes, person_a_id, person_b_id, people!relationships_person_a_id_fkey(name), people!relationships_person_b_id_fkey(name)').or(`person_a_id.in.(${matchedIds.join(',')}),person_b_id.in.(${matchedIds.join(',')})`)
+        : Promise.resolve({ data: [] }),
+      // My own open items (what I owe them or need to bring up)
+      supabase.from('action_items').select('description, due_date').eq('status', 'open').eq('owner_type', 'me').order('due_date', { ascending: true, nullsFirst: false }),
+      // Recent decisions from meetings they attended
+      hasMatch
+        ? supabase.from('decisions').select('title, context, outcome, created_at, meetings(title, date)').order('created_at', { ascending: false }).limit(30)
+        : supabase.from('decisions').select('title, context, outcome, created_at').order('created_at', { ascending: false }).limit(20),
     ])
 
     context = JSON.stringify({
-      ...(hasMatch ? { people_you_are_meeting: personRecords } : { people: personRecords }),
-      ...(hasMatch ? { all_action_items_owned_by_them: personActionItems } : {}),
-      ...(hasMatch ? { all_questions_about_them: personQuestions } : {}),
-      all_open_action_items: allOpenItems,
-      all_open_questions: allOpenQuestions,
-      recent_meetings: meetings,
-      decisions,
-      observations,
+      people: personRecords,
+      relationships: personRelationships,
+      meetings_together: personMeetings,
+      their_open_commitments: personOpenItems,
+      their_recently_completed: personRecentlyClosedItems,
+      open_questions_about_them: personOpenQuestions,
+      my_open_action_items: myOpenItems,
+      recent_decisions: decisions,
     }, null, 2)
 
-    systemPrompt = `You are a personal work assistant for a product strategy manager who is new to a large company. Given context about a person or meeting they are about to enter, produce a tight pre-brief: who is involved, what's the relevant history, what open items or questions exist with these people, and 1-2 things they should keep in mind. Be specific. No filler.`
+    systemPrompt = `You are a personal work assistant for a product strategy manager who is new to a large company. Produce a structured pre-meeting brief with these sections:
+
+**Who they are** — role, team, rapport level (1-5), any notes stored about them, how they relate to others (org relationships). Be direct, not flattering.
+
+**Recent history** — last 2-3 interactions, what was discussed, what moved or didn't. If last_interaction_date is more than 3 weeks ago, flag it.
+
+**Open commitments** — things they owe you (their open action items). Note anything overdue.
+
+**What I need to bring** — my own open action items, especially anything that might be relevant to this person or meeting.
+
+**Open questions** — unresolved questions linked to this person. Surface the oldest ones.
+
+**Things to keep in mind** — 1-2 observations worth going in with. Draw from patterns: follow-through rate, relationship dynamics, anything in their person notes. This is the section to be genuinely useful, not just informational.
+
+Skip any section where there's nothing real to say. Be specific. Use actual names and dates. No filler.`
     userMessage = `Here is my work data:\n\n${context}\n\nPrepare me for: ${input}`
+
+  } else if (mode === 'patterns') {
+    const today = new Date().toISOString().split('T')[0]
+    const twentyOneDaysAgo = new Date()
+    twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21)
+
+    const [
+      { data: allActionItems },
+      { data: meetingsWithDecisions },
+      { data: openQuestions },
+      { data: people },
+    ] = await Promise.all([
+      supabase.from('action_items').select('owner_type, owner_person_id, status, due_date, created_at, people(name)'),
+      supabase.from('meetings').select('id, title, date, attendee_ids, decisions(id)').order('date', { ascending: false }).limit(50),
+      supabase.from('open_questions').select('question, created_at, status, people(name)').eq('status', 'open').order('created_at', { ascending: true }),
+      supabase.from('people').select('id, name, title, org_team, last_interaction_date').order('last_interaction_date', { ascending: true, nullsFirst: true }),
+    ])
+
+    // Per-person action item stats
+    const personMap: Record<string, { name: string; total: number; done: number; open: number; overdue: number; oldestOpenDays: number }> = {}
+    for (const item of allActionItems ?? []) {
+      if (item.owner_type !== 'other' || !item.owner_person_id) continue
+      const name = (item.people as { name: string } | null)?.name ?? item.owner_person_id
+      if (!personMap[item.owner_person_id]) {
+        personMap[item.owner_person_id] = { name, total: 0, done: 0, open: 0, overdue: 0, oldestOpenDays: 0 }
+      }
+      const p = personMap[item.owner_person_id]
+      p.total++
+      if (item.status === 'done') p.done++
+      if (item.status === 'open') {
+        p.open++
+        if (item.due_date && item.due_date < today) p.overdue++
+        const ageDays = Math.floor((Date.now() - new Date(item.created_at).getTime()) / 86400000)
+        if (ageDays > p.oldestOpenDays) p.oldestOpenDays = ageDays
+      }
+    }
+    const personStats = Object.values(personMap)
+      .filter(p => p.total >= 2)
+      .map(p => ({
+        ...p,
+        completionRate: p.total > 0 ? Math.round((p.done / p.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.open - a.open)
+
+    // My own backlog
+    const myItems = (allActionItems ?? []).filter(i => i.owner_type === 'me')
+    const myOpen = myItems.filter(i => i.status === 'open')
+    const myOverdue = myOpen.filter(i => i.due_date && i.due_date < today)
+
+    // Meeting decision yield
+    const lowYieldMeetings = (meetingsWithDecisions ?? [])
+      .filter(m => (m.attendee_ids?.length ?? 0) > 1 && (m.decisions as unknown[]).length === 0)
+      .slice(0, 5)
+      .map(m => ({ title: m.title, date: m.date }))
+
+    const avgDecisionsPerMeeting = meetingsWithDecisions && meetingsWithDecisions.length > 0
+      ? ((meetingsWithDecisions.reduce((sum, m) => sum + (m.decisions as unknown[]).length, 0)) / meetingsWithDecisions.length).toFixed(1)
+      : '0'
+
+    // Question aging
+    const agingQuestions = (openQuestions ?? []).map(q => ({
+      question: q.question,
+      person: (q.people as { name: string } | null)?.name ?? null,
+      ageDays: Math.floor((Date.now() - new Date(q.created_at).getTime()) / 86400000),
+    }))
+
+    // Interaction gaps
+    const gapPeople = (people ?? [])
+      .filter(p => {
+        if (!p.last_interaction_date) return true
+        return new Date(p.last_interaction_date) < twentyOneDaysAgo
+      })
+      .slice(0, 8)
+      .map(p => ({
+        name: p.name,
+        title: p.title,
+        daysSinceContact: p.last_interaction_date
+          ? Math.floor((Date.now() - new Date(p.last_interaction_date).getTime()) / 86400000)
+          : null,
+      }))
+
+    context = JSON.stringify({
+      my_backlog: {
+        open_count: myOpen.length,
+        overdue_count: myOverdue.length,
+      },
+      person_followthrough_stats: personStats,
+      meeting_decision_yield: {
+        avg_decisions_per_meeting: avgDecisionsPerMeeting,
+        recent_meetings_with_no_decisions: lowYieldMeetings,
+      },
+      open_question_aging: agingQuestions,
+      interaction_gaps: gapPeople,
+    }, null, 2)
+
+    systemPrompt = `You are a personal work assistant for a product strategy manager. You have been given operational stats derived from their meeting notes, action items, and contact history. Your job is to identify 2-3 patterns that are genuinely worth knowing — things that aren't obvious from day-to-day but show up clearly in the data.
+
+Be direct and specific. Use real names and numbers. Avoid narrating every stat — pick the ones that actually mean something. A pattern is interesting if it implies something the user should do, reconsider, or keep an eye on. If the data is thin or too sparse to draw real conclusions, say so plainly rather than manufacturing insight.
+
+Format: 2-3 short paragraphs, no headers, no bullet points.`
+    userMessage = `Here are my operational stats:\n\n${context}\n\nWhat patterns are worth knowing?`
 
   } else {
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 })
@@ -109,7 +236,7 @@ export async function POST(request: NextRequest) {
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
   })

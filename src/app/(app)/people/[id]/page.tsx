@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { EditablePersonNotes } from '@/components/EditablePersonNotes'
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -55,12 +56,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {person.notes && (
-        <div className="mb-6">
-          <h2 className="label-caps text-lr-stone mb-2">Notes</h2>
-          <p className="text-sm text-lr-ink bg-lr-parchment rounded-lg px-4 py-3">{person.notes}</p>
-        </div>
-      )}
+      <div className="mb-6">
+        <h2 className="label-caps text-lr-stone mb-2">Notes</h2>
+        <EditablePersonNotes personId={person.id} initialNotes={person.notes} />
+      </div>
 
       {meetings && meetings.length > 0 && (
         <div className="mb-6">

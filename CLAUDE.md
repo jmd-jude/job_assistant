@@ -39,33 +39,40 @@ This is a mobile-first personal work assistant for a product strategy manager. I
 
 **Auth and routing.** `src/proxy.ts` acts as a middleware-like function that gates all routes behind Supabase session auth, redirecting unauthenticated users to `/login`. The `(app)` route group wraps all authenticated pages.
 
-**Data layer.** Supabase (Postgres) is the only database. The schema lives in `supabase/schema.sql`. Tables: `people`, `relationships`, `projects`, `meetings`, `decisions`, `action_items`, `wins_and_observations`, `open_questions`, `parsed_items`, `recaps`, `conversations`, `conversation_turns`. Two Supabase client utilities exist: `src/lib/supabase/server.ts` (server components and API routes) and `src/lib/supabase/client.ts` (client components). All tables have RLS enabled; authenticated users see all rows (single-user app).
+**Data layer.** Supabase (Postgres) is the only database. The schema lives in `supabase/schema.sql`. Tables: `people`, `relationships`, `projects`, `meetings`, `decisions`, `action_items`, `wins_and_observations`, `open_questions`, `parsed_items`, `recaps`, `conversations`, `conversation_turns`, `notes`. Two Supabase client utilities exist: `src/lib/supabase/server.ts` (server components and API routes) and `src/lib/supabase/client.ts` (client components). All tables have RLS enabled; authenticated users see all rows (single-user app).
 
-`parsed_items` is the retrieval backbone. It has an `embedding vector(1536)` column populated at ingest time and a `match_parsed_items(query_embedding, match_count)` RPC function for cosine similarity search. The `pgvector` extension must be enabled in Supabase for this to work.
+`parsed_items` is the retrieval backbone. It has an `embedding vector(1536)` column populated at ingest time and a `match_parsed_items(query_embedding, match_count)` RPC function for cosine similarity search. The `pgvector` extension must be enabled in Supabase for this to work. Notes and recaps are dual-written: the record goes to its own table (`notes`, `recaps`) and a corresponding row in `parsed_items` with `linked_record_id` pointing back, so Ask can retrieve them without changes to the query route.
 
 **API routes:**
-- `POST /api/parse` — takes raw meeting notes, calls Claude to extract structured JSON (people, decisions, action items, open questions, observations), writes everything to Supabase in sequence, then generates an OpenAI embedding for each `parsed_items` row (with meeting title prepended for context). People are upsert-matched by name (case-insensitive `ilike`).
+- `POST /api/parse` — takes raw meeting notes, calls Claude to extract structured JSON (people, decisions, action items, open questions, observations), writes everything to Supabase in sequence, then generates an OpenAI embedding for each `parsed_items` row (with meeting title prepended for context). People are upsert-matched by name (case-insensitive `ilike`). Also updates `meetings.attendee_ids` with resolved person UUIDs and stores the raw Claude JSON in `meetings.raw_parse`.
 - `POST /api/query` — embeds the incoming question via OpenAI, calls the `match_parsed_items` Supabase RPC to retrieve the 15 most semantically similar records, fetches their linked records with joins, and asks Claude to answer based on that relevant context. Supports multi-turn conversations: pass an optional `conversation_id` to continue a thread; omit it to start a new one. Prior turns are fetched from `conversation_turns` and prepended to the Claude messages array. The response always includes a `conversation_id`.
-- `POST /api/synthesize` — two modes: `weekly` (7-day summary using time-bounded queries) and `prep` (pre-meeting brief for a named person or meeting, with person-aware filtering). These modes use direct table queries, not vector retrieval.
-- `POST /api/recaps` — saves a weekly recap narrative to the `recaps` table, embeds it, and also writes a row to `parsed_items` with `item_type = 'recap'` and `linked_record_id` pointing at the recap. This dual-write lets the existing `match_parsed_items` RPC surface recaps in Ask results without any changes to the query route. `GET /api/recaps` returns the full list for the server-rendered list page.
+- `POST /api/synthesize` — four modes: `weekly` (7-day summary), `prep` (pre-meeting brief, person-aware), and `patterns` (aggregate stats analysis). All use direct table queries, not vector retrieval. `prep` filters meetings via `attendee_ids`, fetches open and recently-resolved action items per person, relationships, and person notes. `patterns` computes per-person follow-through rates, meeting decision yield, question aging, and interaction gaps in JS before passing structured stats to Claude.
+- `POST /api/recaps` — saves a weekly recap to the `recaps` table and dual-writes to `parsed_items` with `item_type = 'recap'`. `GET /api/recaps` returns the full list.
 
-**Server actions.** `src/lib/actions.ts` has two mutations used directly in form `formAction` props: `markActionItemDone` and `markQuestionAnswered`. These use inline `'use server'` directives inside the dashboard page's form buttons.
+**Server actions.** `src/lib/actions.ts` contains all DB mutations: `markActionItemDone`, `updateActionItem`, `markQuestionAnswered`, `dropQuestion`, `deleteQuestion`, `createActionItem`, `updatePersonNotes`. All call `revalidatePath` after writing.
+
+**Client components.**
+- `src/components/EditableActionItem.tsx` — inline edit for action items on the dashboard
+- `src/components/EditablePersonNotes.tsx` — click-to-edit notes field on person detail pages
+- `src/components/AssistantBubble.tsx` — renders an Ask response with an inline "+ Capture action item" form below it
 
 **Pages:**
-- `/` — dashboard ("Morning Review"): open action items split by owner (me vs. others), open questions, wins/intelligence/observations from the last 7 days
-- `/capture` — textarea for raw notes, posts to `/api/parse`, shows extracted results
-- `/meetings` and `/meetings/[id]` — meeting log and detail view with parsed items
-- `/people` and `/people/[id]` — contact list and detail
-- `/query` — freeform ask interface (Ask, Week recap, Prep me modes); Ask mode is a persistent chat thread backed by `conversations`/`conversation_turns`; Week recap and Prep me remain single-turn; weekly recap mode shows a "Save this recap" button post-generation
-- `/recaps` and `/recaps/[id]` — chronological list of saved weekly recaps and full-text detail view
+- `/` — dashboard ("Morning Review"): open action items split by owner (me vs. others), open questions with Answered/Drop/delete controls, wins/intelligence/observations from the last 7 days
+- `/capture` — two tabs: meeting notes (posts to `/api/parse`) and quick note (freeform, stored in `notes` table, embedded via `parsed_items`)
+- `/meetings` and `/meetings/[id]` — meeting log and detail view; detail fetches questions via two-step `parsed_items` → `open_questions` lookup (not a subquery)
+- `/people` and `/people/[id]` — contact list and detail; detail includes editable notes, rapport dots, last interaction date, and a Prep me shortcut
+- `/query` — four-tab interface: Ask (persistent chat thread), Week recap, Prep me, Patterns; Ask uses `conversations`/`conversation_turns`; Patterns and Week recap need no text input
+- `/recaps` and `/recaps/[id]` — saved weekly recaps list and full-text detail
 
-**Types.** All shared TypeScript interfaces are in `src/lib/types.ts`, including `ParseResult` (the Claude extraction schema).
+**Types.** All shared TypeScript interfaces are in `src/lib/types.ts`, including `ParseResult` (the Claude extraction schema). `OpenQuestion.status` is `'open' | 'answered' | 'dropped'`.
 
 ## Known Gotchas
 
 **Markdown fence stripping.** Claude occasionally wraps JSON responses in ` ```json ` fences despite being instructed not to. `/api/parse/route.ts` strips them before `JSON.parse`. Don't remove that step.
 
-**Schema migrations.** `supabase/schema.sql` includes numbered migrations at the bottom. Migration 001 adds `type` to `wins_and_observations` and `related_person_id` to `open_questions`. Migration 002 adds the `embedding` column and `match_parsed_items` RPC to `parsed_items`. Migration 003 adds the `recaps` table and updates the `parsed_items_item_type_check` constraint to include `'recap'`. Migration 004 adds `conversations` and `conversation_turns` for the conversational Ask feature. If standing up a fresh instance, run the full file top to bottom. If the live DB already has the base tables, only the migration blocks need to be run.
+**Meeting detail questions query.** `open_questions` are linked to meetings via `parsed_items`, not directly. The meeting detail page fetches `parsed_items` rows with `item_type = 'open_question'` first, extracts the `linked_record_id` values, then queries `open_questions` with `.in('id', questionIds)`. A subquery passed directly to `.eq()` silently returns nothing in Supabase JS.
+
+**Schema migrations.** `supabase/schema.sql` includes numbered migrations at the bottom. Migrations 001-006 are documented there. If standing up a fresh instance, run the full file top to bottom. If the live DB already has the base tables, only the migration blocks need to be run. Migration 006 is idempotent (uses `add column if not exists` and `drop constraint if exists`).
 
 ## Design System
 

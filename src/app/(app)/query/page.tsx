@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Markdown from 'react-markdown'
+import { AssistantBubble } from '@/components/AssistantBubble'
 
-type Mode = 'ask' | 'weekly' | 'prep'
+type Mode = 'ask' | 'weekly' | 'prep' | 'patterns'
 type Status = 'idle' | 'loading' | 'done' | 'error'
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -60,7 +61,7 @@ function QueryPageInner() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (mode !== 'weekly' && !input.trim()) return
+    if (mode !== 'weekly' && mode !== 'patterns' && !input.trim()) return
     setStatus('loading')
     setError(null)
 
@@ -128,24 +129,28 @@ function QueryPageInner() {
     { id: 'ask', label: 'Ask' },
     { id: 'weekly', label: 'Week recap' },
     { id: 'prep', label: 'Prep me' },
+    { id: 'patterns', label: 'Patterns' },
   ]
 
   const placeholders: Record<Mode, string> = {
     ask: 'Ask about meetings, decisions, and action items...',
     weekly: '',
     prep: 'Help prep for a meeting — e.g. "1:1 with David"',
+    patterns: '',
   }
 
   const submitLabels: Record<Mode, string> = {
     ask: 'Send',
     weekly: 'Summarize my week',
     prep: 'Prep me',
+    patterns: 'Find patterns',
   }
 
   const loadingLabels: Record<Mode, string> = {
     ask: 'Thinking...',
     weekly: 'Synthesizing...',
     prep: 'Pulling context...',
+    patterns: 'Analyzing...',
   }
 
   return (
@@ -190,9 +195,7 @@ function QueryPageInner() {
                       {turn.content}
                     </div>
                   ) : (
-                    <div className="max-w-[90%] px-4 py-3 rounded-2xl bg-lr-white lr-border-med text-sm text-lr-ink leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-li:my-0.5 prose-strong:text-lr-ink prose-headings:text-lr-ink prose-a:text-lr-red">
-                      <Markdown>{turn.content}</Markdown>
-                    </div>
+                    <AssistantBubble content={turn.content} />
                   )}
                 </div>
               ))}
@@ -243,7 +246,7 @@ function QueryPageInner() {
       {mode !== 'ask' && (
         <div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode !== 'weekly' && (
+            {mode !== 'weekly' && mode !== 'patterns' && (
               <textarea
                 placeholder={placeholders[mode]}
                 value={input}
@@ -258,9 +261,14 @@ function QueryPageInner() {
                 Pulls everything from the last 7 days — meetings, action items, decisions, intelligence — and gives you a plain-language synthesis.
               </p>
             )}
+            {mode === 'patterns' && (
+              <p className="text-sm text-lr-stone py-2">
+                Analyzes your action items, meetings, open questions, and contact history to surface 2-3 patterns worth knowing.
+              </p>
+            )}
             <button
               type="submit"
-              disabled={status === 'loading' || (mode !== 'weekly' && !input.trim())}
+              disabled={status === 'loading' || (mode !== 'weekly' && mode !== 'patterns' && !input.trim())}
               className="w-full py-3 rounded-lg bg-lr-ink text-lr-parchment font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
             >
               {status === 'loading' ? loadingLabels[mode] : submitLabels[mode]}
