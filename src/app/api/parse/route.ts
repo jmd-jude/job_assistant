@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       model: CLAUDE_MODEL,
       max_tokens: 4096,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: raw_notes }],
+      messages: [{ role: 'user', content: `Meeting date: ${date}\n\n${raw_notes}` }],
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : ''

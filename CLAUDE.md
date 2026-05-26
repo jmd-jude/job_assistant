@@ -25,6 +25,13 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
+Two additional server-side env vars are required for the cron route and admin client:
+
+```
+SUPABASE_SERVICE_ROLE_KEY=    # bypasses RLS; used only by the cron route via src/lib/supabase/admin.ts
+CRON_SECRET=                  # shared secret; Vercel sends it as Bearer token to /api/cron/weekly-recap
+```
+
 One optional env var:
 
 ```
@@ -48,6 +55,8 @@ This is a mobile-first personal work assistant for a product strategy manager. I
 - `POST /api/query` — embeds the incoming question via OpenAI, calls the `match_parsed_items` Supabase RPC to retrieve the 15 most semantically similar records, fetches their linked records with joins, and asks Claude to answer based on that relevant context. Supports multi-turn conversations: pass an optional `conversation_id` to continue a thread; omit it to start a new one. Prior turns are fetched from `conversation_turns` and prepended to the Claude messages array. The response always includes a `conversation_id`.
 - `POST /api/synthesize` — four modes: `weekly` (7-day summary), `prep` (pre-meeting brief, person-aware), and `patterns` (aggregate stats analysis). All use direct table queries, not vector retrieval. `prep` filters meetings via `attendee_ids`, fetches open and recently-resolved action items per person, relationships, and person notes. `patterns` computes per-person follow-through rates, meeting decision yield, question aging, and interaction gaps in JS before passing structured stats to Claude.
 - `POST /api/recaps` — saves a weekly recap to the `recaps` table and dual-writes to `parsed_items` with `item_type = 'recap'`. `GET /api/recaps` returns the full list.
+- `POST /api/notes` — stores a quick freeform note in the `notes` table and dual-writes to `parsed_items` for Ask retrieval. Called by the quick note tab on `/capture`.
+- `GET /api/cron/weekly-recap` — Vercel cron job (Sundays 22:00 UTC, configured in `vercel.json`). Uses the admin Supabase client (service role key, bypasses RLS) to generate and save a weekly recap autonomously. Authenticated via `CRON_SECRET` Bearer token.
 
 **Server actions.** `src/lib/actions.ts` contains all DB mutations: `markActionItemDone`, `updateActionItem`, `markQuestionAnswered`, `dropQuestion`, `deleteQuestion`, `createActionItem`, `updatePersonNotes`. All call `revalidatePath` after writing.
 
