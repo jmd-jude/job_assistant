@@ -40,6 +40,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No notes provided' }, { status: 400 })
     }
 
+    const date = meeting_date || new Date().toISOString().split('T')[0]
+
     const message = await anthropic.messages.create({
       model: CLAUDE_MODEL,
       max_tokens: 4096,
@@ -58,8 +60,6 @@ export async function POST(request: NextRequest) {
       console.error('[parse] JSON parse failed:', e, '\nRaw text:', raw)
       return NextResponse.json({ error: 'Failed to parse response', raw: text }, { status: 500 })
     }
-
-    const date = meeting_date || new Date().toISOString().split('T')[0]
     const title = meeting_title || parsed.suggested_meeting_title || null
 
     const { data: meeting, error: meetingError } = await supabase
